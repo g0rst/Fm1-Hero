@@ -1,38 +1,29 @@
-# Felucca
+# FM1-Hero
 
-[![License: GPL-3.0-only](https://img.shields.io/badge/license-GPL--3.0--only-blue.svg)](LICENSE)
+Ein Rhythmusspiel im Stil von Guitar Hero für den **M-Vave FM-1**: Vier Spuren eines Beats, vier Drehregler.
+Die Noten laufen von oben herunter und zeigen, in welche Richtung du den jeweiligen Regler drehen musst (↻ rechts, ↺ links) und wie lange.
+Dabei veränderst du live den Sound und lernst nebenbei, was die Synth-Funktionen bewirken:
 
-Felucca is open-source custom synthesizer firmware for the **M-VAVE FM-1**.
+| Level | Die vier Regler | Lernziel |
+| --- | --- | --- |
+| 1 Helligkeit | Cutoff · Resonanz · Mod-Index · Ratio | Filter und FM-Obertöne |
+| 2 Hüllkurve | Attack · Decay · Sustain · Release | ADSR (am FM-1: ENV-Taste, Regler 1–4) |
+| 3 FM-Operatoren | Ratio · Mod-Level · Op-Stapel · Detune | wie Operatoren einander modulieren |
+| 4 Effekte | Delay-Zeit · Feedback · Hall · Drive | Raum, Echo, Verzerrung |
 
-The FM-1 is the only supported hardware target. This project does not provide, maintain, or accept requests for ports to other devices or software platforms.
+## Stand
 
-## Install
+- **`prototype/index.html`**: spielbarer Prototyp im Browser (eine Datei, keine Installation).
+  Eingabe per Maus/Touch (im Kreis um den Regler ziehen), Mausrad, Tasten Q/A, W/S, E/D, R/F oder MIDI-Controller (CC).
+- **Firmware für den FM-1**: in Arbeit. Basis ist [Felucca](https://github.com/hugelton/Felucca) (siehe unten).
+  Ziel ist ein eigener Spielmodus, der direkt auf dem FM-1 läuft: die vier Encoder als Eingabe, das Display als Notenspur.
 
-**Stable release: 1.8.2.** Connect your FM-1 by USB and use the [web installer](https://hugelton.github.io/Felucca/) in Chrome or Edge. The installer offers a way back to the official V15 or V16 firmware. Back up your projects and presets before changing firmware.
+## Herkunft und Lizenz
 
-**Newer FM-1 flash.** Some newer FM-1 units use UC25HQ80 flash (JEDEC ID `0xB36014`). 1.8.2 recognises it. On such a unit, 1.8.1 and earlier cannot start an update; see the [1.8.2 release notes](https://github.com/hugelton/Felucca/releases/tag/v1.8.2) for the way back through the official V15.
+Dieses Repository enthält den Quellcode von **Felucca** (Leo Kuroshita, Hügelton Instruments), Stand
+`ca1db43a78455ae747766a2738f8580380d40bc1`, lizenziert unter **GPL-3.0-only**. Die Originaldatei steht in `docs/FELUCCA-README.md`,
+die Lizenzen in `LICENSE`, `LICENSING.md` und `LICENSES/`. Die Unterordner `firmware/bsp` und `firmware/engines` sind Git-Submodule
+(`git submodule update --init`). Eigene Änderungen stehen ebenfalls unter GPL-3.0-only.
 
-## Project resources
-
-- [Web installer](https://hugelton.github.io/Felucca/)
-- [Web editor](https://hugelton.github.io/Felucca/webapp/editor/) ([source](https://github.com/hugelton/Felucca-WebApp))
-- [Try it in your browser](https://hugelton.github.io/Felucca/webapp/try/): a demo of the firmware, no FM-1 needed
-- [Manual and release notes](https://github.com/hugelton/Felucca/wiki/Home)
-- [Building from source](BUILDING.md)
-- [Issue tracker](https://github.com/hugelton/Felucca/issues)
-
-The firmware uses [Felucca-Engines](https://github.com/hugelton/Felucca-Engines) (MIT) for its built-in sound engines and [felucca-bsp](https://github.com/hugelton/felucca-bsp) (MPL-2.0) for the FM-1 hardware layer. Neither repository implies support for Felucca on other hardware.
-
-## Development and support
-
-Felucca focuses on the FM-1. Third-party modifications and ports are independent projects and are not tested or supported here. Contributions are considered at the maintainer's discretion; no development schedule or ongoing support is promised.
-
-Felucca is developed with the assistance of AI coding agents (code, tests, documentation, translation, maintenance). Design, features, sounds and direction are the maintainer's or the community's; no generative AI is used for music, icons or artwork. See [On AI-Assisted Development and Responsibility](https://github.com/hugelton/Felucca/discussions/166).
-
-## Credits and licence
-
-Felucca is free software under [GPL-3.0-only](LICENSE); the Hügelton Sample Pack is CC0 1.0. The engines and hardware layer retain their own licences. See [CREDITS.md](CREDITS.md) and [LICENSING.md](LICENSING.md).
-
-M-VAVE and FM-1 are trademarks of their respective owners. Felucca is not affiliated with, endorsed by or supported by M-VAVE.
-
-Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
+Felucca ist nicht mit M-Vave verbunden, und dieses Projekt ist nicht von M-Vave oder Hügelton Instruments unterstützt.
+Die Installation von Custom-Firmware geschieht auf eigene Gefahr; der Felucca-Web-Installer bietet den Weg zurück zur offiziellen Firmware.

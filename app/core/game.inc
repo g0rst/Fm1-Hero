@@ -135,7 +135,7 @@ static struct {
     /* Auftrag */
     int job, job_on, free, diff, tries, last_stars, worst;
     uint32_t tgt_off_at;
-    int8_t tgt_wave[120], tgt_zeit[120], own_wave[120], own_zeit[120];
+    int8_t tgt_wave[ZEIT_N], tgt_zeit[ZEIT_N], own_wave[ZEIT_N], own_zeit[ZEIT_N];
     uint32_t pv_hash, pv_t, live_until;
     uint16_t pv_bin, tgt_bin;
     uint8_t zoom_t, zoom_w, tgt_per, pv_per;   /* Zoom: Zeitbild 0..4 (0,3 .. 4,8 s), Welle 0..3 (1 .. 8 Schwingungen) */
@@ -285,6 +285,7 @@ static void draw_dialog(int y)
     const char *ls[NL];
     int ll[NL], n, i, left = G.dlg_shown;
     int bc = G.dlg_fact ? C_YEL : C_WHT;
+    hcut(y, GH - y);
     round_box(1, y, 118, 36, bc, C_BLK);
     wrap(G.dlg_page, ls, ll, &n);
     for (i = 0; i < n && left > 0; i++) {
@@ -499,8 +500,8 @@ static void job_build(void)
         if (compare(tgt_patch, bench, &w) == 3 && param_ok(P_W1))
             bench[P_W1] = tgt_patch[P_W1] == W_SAW ? W_SQR : W_SAW;
     }
-    syn_offline(tgt_patch, j->note ? j->note : 60, G.tgt_wave, G.tgt_zeit, 441, 2);
-    G.tgt_bin = 441;
+    syn_offline(tgt_patch, j->note ? j->note : 60, G.tgt_wave, G.tgt_zeit, 228, 2);
+    G.tgt_bin = 228;
     G.tgt_per = 2;
     G.pv_hash = 0;
 }
@@ -742,7 +743,7 @@ static void set_mach(int m)
     G.live_until = 0;                   /* das Bild zeigt gleich die Vorschau der neuen Maschine */
     G.mach = m;
     G.view = auto_view(m);
-    G.zoom_t = (uint8_t)(m == M_LFO || m == M_FX ? 3 : 2);
+    G.zoom_t = (uint8_t)(m == M_LFO || m == M_FX ? 4 : 3);
     G.zoom_w = 1;
 }
 /* PRESETS oder ALGORITHM: der Ausschnitt des Oszis */
@@ -750,7 +751,7 @@ static void zoom_input(void)
 {
     int d = G.enc[FAB_E_PRESET] + G.enc[FAB_E_ALGO];
     if (!d) return;
-    if (G.view) { int z = G.zoom_t + (d > 0 ? -1 : 1); G.zoom_t = (uint8_t)(z < 0 ? 0 : z > 4 ? 4 : z); }
+    if (G.view) { int z = G.zoom_t + (d > 0 ? -1 : 1); G.zoom_t = (uint8_t)(z < 0 ? 0 : z > 5 ? 5 : z); }
     else { int z = G.zoom_w + (d > 0 ? -1 : 1); G.zoom_w = (uint8_t)(z < 0 ? 0 : z > 3 ? 3 : z); }
     G.live_until = 0;
     sfx(SFX_BLIP, 70 + (G.view ? G.zoom_t : G.zoom_w) * 4);
@@ -891,10 +892,11 @@ static void draw_band(const uint8_t *p, int y)
     if (ends) icon(IC_SPK, 11, 9, x + 1, y + 2, active ? C_WHT : C_LGRY);
 }
 /* Vorschau: der eigene Klang, ohne Taste berechnet, kurz nachdem sich ein Regler bewegt hat */
-static const uint16_t ZBIN[5] = {110, 220, 441, 882, 1764};
-static const char *const ZLAB[5] = {"0,3 S", "0,6 S", "1,2 S", "2,4 S", "4,8 S"};
+/* Zoom des Zeitbilds: 232 Punkte über 0,15 .. 4,8 Sekunden */
+static const uint16_t ZBIN[6] = {29, 57, 114, 228, 456, 912};
+static const char *const ZLAB[6] = {"0,15S", "0,3 S", "0,6 S", "1,2 S", "2,4 S", "4,8 S"};
 static const uint8_t ZPER[4] = {1, 2, 4, 8};
-static uint16_t view_bin(void) { return ZBIN[G.zoom_t < 5 ? G.zoom_t : 2]; }
+static uint16_t view_bin(void) { return ZBIN[G.zoom_t < 6 ? G.zoom_t : 3]; }
 static void preview_update(void)
 {
     const uint8_t *p = edit_patch();
@@ -920,7 +922,7 @@ static void preview_update(void)
     }
     if (V[scope_v].s1 != E_IDLE) G.live_until = G.now + 1500u;
 }
-static int peak8(const int8_t *a, int n)
+static int peak8(const int8_t *a, int n)   /* (kleinster Wert 8: Stille bleibt flach) */
 {
     int i, m = 8;
     for (i = 0; i < n; i++) { int v = a[i] < 0 ? -a[i] : a[i]; if (v > m) m = v; }
@@ -928,45 +930,46 @@ static int peak8(const int8_t *a, int n)
 }
 static void draw_scope(int y, int h, int show_own, int ghost)
 {
+    /* Rahmen, Raster und Schrift im Pixel-Look, die Kurven fein (hpx/hline: echte Displaypunkte) */
     int i, cy = y + h / 2;
-    int amp = h / 2 - 4;
+    int X0 = 4, CY = 2 * cy, AMP = 2 * (h / 2 - 4), BASE = 2 * (y + h - 3) + 1, TOP = 2 * (h - 9);
     int live = V[scope_v].s1 != E_IDLE || (int32_t)(G.live_until - G.now) > 0;
     round_box(0, y, GW, h, C_BLK, C_DGRN);
-    for (i = 4; i < GW - 4; i += 4) { px(i, cy, C_DGRN); px(i, cy - amp, C_NAVY); px(i, cy + amp, C_NAVY); }
+    for (i = 4; i < GW - 4; i += 4) { px(i, cy, C_DGRN); px(i, cy - (h / 2 - 4), C_NAVY); px(i, cy + (h / 2 - 4), C_NAVY); }
     for (i = 30; i < GW; i += 30) { int yy; for (yy = y + 3; yy < y + h - 3; yy += 4) px(i, yy, C_NAVY); }
     if (!show_own && !ghost) {
         text_c(60, cy - 3, "NUR MIT DEN OHREN!", C_LGRY, 1);
         return;
     }
+    hs_on = 1;
     if (G.view == 0) {
-        /* Welle: jede Spur auf volle Höhe, damit man die Form auch bei leisen Tönen sieht */
+        /* Welle: jede Linie auf volle Höhe, damit man die Form auch bei leisen Tönen sieht */
         if (ghost) {
-            int prev = 0, pk = peak8(G.tgt_wave, 120);
-            for (i = 0; i < 116; i++) {
-                int yy = cy - G.tgt_wave[i] * amp / pk;
-                if (i && (i & 1)) line(2 + i - 1, prev, 2 + i, yy, C_PNK);
+            int prev = 0, pk = peak8(G.tgt_wave, ZEIT_N);
+            for (i = 0; i < ZEIT_N; i++) {
+                int yy = CY - G.tgt_wave[i] * AMP / pk;
+                if (i && ((i >> 1) & 1)) hline(X0 + i - 1, prev, X0 + i, yy, C_PNK);
                 prev = yy;
             }
         }
         if (show_own && V[scope_v].s1 != E_IDLE) {    /* was gerade klingt */
             uint32_t w = scope_w, st = w - 4000u, s;
             float inc = V[scope_v].inc1, span, pk = 0.02f;
-            int prev = cy;
-            int found = 0;
-            span = inc > 0.0f ? (float)ZPER[G.zoom_w & 3] / inc : 120.0f;   /* ganze Schwingungen, wie gezoomt */
+            int prev = CY, found = 0;
+            span = inc > 0.0f ? (float)ZPER[G.zoom_w & 3] / inc : 120.0f;
             if (span > 3800.0f) span = 3800.0f;
             if (span < 30.0f) span = 30.0f;
             for (s = w - (uint32_t)span - 20u; s != st; s--)   /* der letzte Nulldurchgang nach oben, der passt */
                 if (scope_buf[(s - 1u) & (SCOPE_N - 1)] <= 0.0f && scope_buf[s & (SCOPE_N - 1)] > 0.0f) { found = 1; break; }
             st = found ? s : w - (uint32_t)span - 10u;
-            for (i = 0; i < 116; i++) {
-                float v = scope_buf[(st + (uint32_t)((float)i * span / 116.0f)) & (SCOPE_N - 1)];
+            for (i = 0; i < ZEIT_N; i++) {
+                float v = scope_buf[(st + (uint32_t)((float)i * span / (float)ZEIT_N)) & (SCOPE_N - 1)];
                 if (fabsf_(v) > pk) pk = fabsf_(v);
             }
-            for (i = 0; i < 116; i++) {
-                float v = scope_buf[(st + (uint32_t)((float)i * span / 116.0f)) & (SCOPE_N - 1)] / pk;
-                int yy = cy - (int)(v * (float)amp);
-                if (i) { line(2 + i - 1, prev, 2 + i, yy, C_GRN); px(2 + i, yy + 1, C_DGRN); }
+            for (i = 0; i < ZEIT_N; i++) {
+                float v = scope_buf[(st + (uint32_t)((float)i * span / (float)ZEIT_N)) & (SCOPE_N - 1)] / pk;
+                int yy = CY - (int)(v * (float)AMP);
+                if (i) hline(X0 + i - 1, prev, X0 + i, yy, C_GRN);
                 prev = yy;
             }
             if (inc > 0.0f) {
@@ -975,10 +978,10 @@ static void draw_scope(int y, int h, int show_own, int ghost)
                 text(36, y + 2, b, C_GRN, 1);
             }
         } else if (show_own && G.pv_done) {           /* sonst: die Vorschau */
-            int prev = cy, pk = peak8(G.own_wave, 120);
-            for (i = 0; i < 116; i++) {
-                int yy = cy - G.own_wave[i] * amp / pk;
-                if (i) line(2 + i - 1, prev, 2 + i, yy, C_GRN);
+            int prev = CY, pk = peak8(G.own_wave, ZEIT_N);
+            for (i = 0; i < ZEIT_N; i++) {
+                int yy = CY - G.own_wave[i] * AMP / pk;
+                if (i) hline(X0 + i - 1, prev, X0 + i, yy, C_GRN);
                 prev = yy;
             }
             text(36, y + 2, "VORSCHAU", C_DGRN, 1);
@@ -990,35 +993,40 @@ static void draw_scope(int y, int h, int show_own, int ghost)
             text(GW - 14, y + h - 10, zb, C_DGRN, 1);
         }
     } else {
-        /* Zeit: Lautstärke von links nach rechts; der eigene Ton rollt mit, solange er klingt */
-        int base = y + h - 3, top = h - 9;
+        /* Zeit: Lautstärke von links nach rechts; der eigene Ton läuft mit, solange er klingt */
+        int base = y + h - 3;
         for (i = 0; i <= 116; i += 29) { int yy; for (yy = base; yy > base - 3; yy--) px(2 + i, yy, C_DGRN); }
-        if (ghost)
-            for (i = 0; i < 116; i++) {
-                int g = G.tgt_zeit[i] * top / 128;
-                if (g) { px(2 + i, base - g, C_PNK); px(2 + i, base - g + 1, C_PNK); }
-            }
         if (show_own && live && zeit_count) {
-            /* ab dem Anschlag: bis 116 Abschnitte 1:1, bis 232 zusammengeschoben (Anfang bleibt sichtbar), dann rollend */
-            uint32_t n = zeit_count, sc = n > 116u ? 2u : 1u, st = n > 232u ? n - 232u : 0u, k;
-            int xx = 2;
+            /* ab dem Anschlag: bis 232 Abschnitte 1:1, bis 464 zusammengeschoben (Anfang bleibt sichtbar), dann rollend */
+            uint32_t n = zeit_count, sc = n > ZEIT_N ? 2u : 1u, st = n > 2u * ZEIT_N ? n - 2u * ZEIT_N : 0u, k;
+            int xx = X0;
             for (k = st; k < n; k += sc, xx++) {
                 int a = zeit_ring[k & (ZEIT_R - 1)], b2 = k + 1 < n && sc == 2 ? zeit_ring[(k + 1) & (ZEIT_R - 1)] : 0;
-                int g = (a > b2 ? a : b2) * top / 128;
-                if (g) rect(xx, base - g, 1, g, C_GRN);
+                int g = (a > b2 ? a : b2) * TOP / 128;
+                if (g) hline(xx, BASE, xx, BASE - g, C_GRN);
             }
-            if (V[scope_v].s1 != E_IDLE) rect(xx, y + 3, 1, h - 6, C_WHT);   /* jetzt */
+            if (V[scope_v].s1 != E_IDLE) hline(xx, 2 * (y + 3), xx, BASE, C_WHT);   /* jetzt */
             if (sc == 2) text(GW - 50, base - 9, "ZEIT X2", C_DGRN, 1);
         } else if (show_own && G.pv_done) {
-            for (i = 0; i < 116; i++) {
-                int g = G.own_zeit[i] * top / 128;
-                if (g) rect(2 + i, base - g, 1, g, C_DGRN);
-                if (g) px(2 + i, base - g, C_GRN);
+            int prev = BASE;
+            for (i = 0; i < ZEIT_N; i++) {
+                int g = G.own_zeit[i] * TOP / 128, yy = BASE - g;
+                if (g) hline(X0 + i, BASE, X0 + i, yy, C_DGRN);
+                if (i) hline(X0 + i - 1, prev, X0 + i, yy, C_GRN);
+                prev = yy;
             }
             text(36, y + 2, "VORSCHAU", C_DGRN, 1);
         }
+        if (ghost) {
+            int prev = BASE;
+            for (i = 0; i < ZEIT_N; i++) {
+                int yy = BASE - G.tgt_zeit[i] * TOP / 128;
+                if (i) hline(X0 + i - 1, prev, X0 + i, yy, C_PNK);
+                prev = yy;
+            }
+        }
         text(3, y + 2, "ZEIT", C_DGRN, 1);
-        if (!(show_own && live && zeit_count > 116u)) text(GW - 32, base - 9, ZLAB[G.zoom_t < 5 ? G.zoom_t : 2], C_DGRN, 1);
+        if (!(show_own && live && zeit_count > ZEIT_N)) text(GW - 32, base - 9, ZLAB[G.zoom_t < 6 ? G.zoom_t : 3], C_DGRN, 1);
     }
     if (ghost) text(GW - 32, y + 2, "KUNDE", C_PNK, 1);
 }
@@ -1080,7 +1088,7 @@ static void draw_work(void)
     draw_status(75);
     draw_knobs(p, 84);
     if (G.dlg_on) draw_dialog(60);
-    if (G.confirm_home) { round_box(10, 40, 100, 20, C_RED, C_WHT); text_c(60, 47, "HOME = ZURÜCK", C_WHT, 1); }
+    if (G.confirm_home) { hcut(40, 20); round_box(10, 40, 100, 20, C_RED, C_WHT); text_c(60, 47, "HOME = ZURÜCK", C_WHT, 1); }
 }
 
 /* ------------------------------------------------------------------ Schritte (Takt und Live) --- */
@@ -2032,6 +2040,7 @@ static uint32_t strip_hash[FAB_STRIPS], dirty_bits;
 static void render(void)
 {
     int s;
+    hclear();
     switch (G.screen) {
     case SC_TITLE: draw_title(); break;
     case SC_SLOTS: draw_slots(); break;
@@ -2047,6 +2056,7 @@ static void render(void)
     default: draw_end(); break;
     }
     if (G.msg_t && G.now - G.msg_t < 1500u) {
+        hcut(50, 20);
         round_box(10, 50, 100, 20, C_GRN, C_WHT);
         text_c(60, 57, G.msg_a, C_BLK, 1);
     }
@@ -2056,6 +2066,15 @@ static void render(void)
         int i, n = GW * (GH / FAB_STRIPS);
         const uint8_t *q = fb + s * n;
         for (i = 0; i < n; i++) h = (h ^ q[i]) * 16777619u;
+        if (hs_on) {                        /* die feine Ebene des Oszis, soweit sie in diesem Streifen liegt */
+            int r;
+            for (r = s * FAB_STRIP_H; r < (s + 1) * FAB_STRIP_H; r++)
+                if (r >= HS_Y0 && r < HS_Y0 + HS_H) {
+                    const uint8_t *hq = hfb + (r - HS_Y0) * 2 * GW;
+                    for (i = 0; i < 2 * GW; i++) h = (h ^ hq[i]) * 16777619u;
+                }
+        }
+        h ^= hs_on;
         if (h != strip_hash[s]) { strip_hash[s] = h; dirty_bits |= 1u << s; }
     }
 }

@@ -62,7 +62,8 @@ Senden mit.
   zugehen; ein weißer Strich zeigt „jetzt“. Die Maschine wählt das passende Bild selbst (Tor, Hüllkurven, Echo:
   ZEIT; Wackler: ZEIT mit 2 Sekunden, bei Ziel „Ton“ WELLE; sonst WELLE), SEL schaltet um. Das Tor in der Leiste
   füllt sich mit der Lautstärke.
-  **PRESETS** (oder ALGORITHM) zoomt in der Werkstatt: das Zeitbild von 0,3 bis 4,8 Sekunden (zum Feineinstellen
+  Das Oszi zeichnet seine Kurven in voller Displayauflösung (240 Punkte), feiner als der Pixel-Look drumherum.
+  **PRESETS** (oder ALGORITHM) zoomt in der Werkstatt: das Zeitbild von 0,15 bis 4,8 Sekunden (zum Feineinstellen
   von START und FALL), die Welle von 1 bis 8 Schwingungen.
 
 | Kapitel | Maschine | Lernziel |

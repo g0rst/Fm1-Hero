@@ -5,6 +5,45 @@
 #define GW 120
 #define GH 120
 static uint8_t fb[GW * GH];
+/* das Oszi in voller Auflösung (240 Punkte breit): eine zweite Ebene über den Zeilen 46..149 des Displays;
+ * 0xFF heißt durchsichtig. Kurven sind so doppelt so fein wie der Pixel-Look drumherum. */
+#define HS_Y0 46
+#define HS_H 104
+static uint8_t hfb[2 * GW * HS_H];
+static uint8_t hs_on;
+static void hclear(void)
+{
+    int i;
+    for (i = 0; i < 2 * GW * HS_H; i++) hfb[i] = 0xFF;
+    hs_on = 0;
+}
+static void hpx(int x, int y, int c)
+{
+    y -= HS_Y0;
+    if ((unsigned)x < 2u * GW && (unsigned)y < HS_H) hfb[y * 2 * GW + x] = (uint8_t)c;
+}
+static void hline(int x0, int y0, int x1, int y1, int c)
+{
+    int dx = x1 > x0 ? x1 - x0 : x0 - x1, sx = x0 < x1 ? 1 : -1;
+    int dy = y1 > y0 ? y0 - y1 : y1 - y0, sy = y0 < y1 ? 1 : -1, err = dx + dy;
+    for (;;) {
+        int e2;
+        hpx(x0, y0, c);
+        if (x0 == x1 && y0 == y1) break;
+        e2 = 2 * err;
+        if (e2 >= dy) { err += dy; x0 += sx; }
+        if (e2 <= dx) { err += dx; y0 += sy; }
+    }
+}
+static void hcut(int y, int h)          /* was über dem Oszi liegt (Sprechblase), deckt es auch in voller Auflösung zu */
+{
+    int r;
+    for (r = 2 * y; r < 2 * (y + h); r++)
+        if (r >= HS_Y0 && r < HS_Y0 + HS_H) {
+            int i;
+            for (i = 0; i < 2 * GW; i++) hfb[(r - HS_Y0) * 2 * GW + i] = 0xFF;
+        }
+}
 
 /* die 16 Farben (Index -> RGB565) */
 #define RGB565(r, g, b) (uint16_t)(((r) & 0xF8) << 8 | ((g) & 0xFC) << 3 | (b) >> 3)

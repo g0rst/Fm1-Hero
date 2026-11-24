@@ -29,7 +29,7 @@ void fab_init(uint32_t seed)
     make_patch(bench, 0);
     V[V_BENCH].p = bench;
     G.held_note_key = -1;
-    G.zoom_t = 2;                       /* 1,2 s */
+    G.zoom_t = 3;                       /* 1,2 s */
     G.zoom_w = 1;                       /* zwei Schwingungen */
     G.held_step = -1;
     G.screen = SC_TITLE;
@@ -85,9 +85,21 @@ void fab_draw(uint16_t *out, int strip)
     const uint8_t *src = fb + strip * GW * (GH / FAB_STRIPS);
     for (y = 0; y < GH / FAB_STRIPS; y++) {
         uint16_t *r0 = out + (2 * y) * FAB_W, *r1 = r0 + FAB_W;
+        int ry = strip * FAB_STRIP_H + 2 * y;
         for (x = 0; x < GW; x++) {
             uint16_t c = PAL[src[y * GW + x] & 15];
             r0[2 * x] = r0[2 * x + 1] = r1[2 * x] = r1[2 * x + 1] = c;
+        }
+        if (hs_on) {                    /* die feine Ebene des Oszis darüber */
+            int k, rr;
+            for (k = 0; k < 2; k++) {
+                rr = ry + k - HS_Y0;
+                if (rr >= 0 && rr < HS_H) {
+                    const uint8_t *h = hfb + rr * FAB_W;
+                    uint16_t *o = k ? r1 : r0;
+                    for (x = 0; x < FAB_W; x++) if (h[x] != 0xFF) o[x] = PAL[h[x] & 15];
+                }
+            }
         }
     }
 }

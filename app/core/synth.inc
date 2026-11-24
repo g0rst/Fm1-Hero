@@ -370,8 +370,8 @@ static volatile uint8_t scope_v = V_BENCH;
 /* das Zeitbild: 120 Abschnitte zu 10 ms, ab dem Anschlag (der Klopfer: fortlaufend) */
 /* Zeitbild: die Lautstärke in Abschnitten (10 ms, beim Wackler und Echo 20 ms), ab dem Anschlag und weiter, solange
  * der Ton klingt, auch nach dem Loslassen (dann sieht man das Tor zugehen); die Anzeige rollt mit */
-#define ZEIT_N 120
-#define ZEIT_R 256
+#define ZEIT_N 232                      /* Punkte quer übers Oszi: die volle Breite des Displays */
+#define ZEIT_R 512
 static volatile uint8_t zeit_ring[ZEIT_R];
 static volatile uint32_t zeit_count;
 static volatile uint16_t zeit_bin = 441;
@@ -622,7 +622,7 @@ static void fab_render_core(int32_t *lr, uint32_t n, uint32_t gain_q12)
 static void syn_offline(const uint8_t *p, int note, int8_t *wave_out, int8_t *zeit_out, uint32_t bin, int periods)
 {
     static voice_t tv;
-    uint32_t i, hold = 60u * bin, total = ZEIT_N * bin;   /* die halbe Zeit gehalten, dann losgelassen */
+    uint32_t i, hold = (ZEIT_N / 2u) * bin, total = ZEIT_N * bin;   /* die halbe Zeit gehalten, dann losgelassen */
     float pk = 0.0f;
     static float buf[4096];
     uint32_t bw = 0;
@@ -651,8 +651,8 @@ static void syn_offline(const uint8_t *p, int note, int8_t *wave_out, int8_t *ze
         if (span < 30.0f) span = 30.0f;
         for (j = 1; j + (uint32_t)span < 4096u; j++)
             if (buf[j - 1] <= 0.0f && buf[j] > 0.0f) { s0 = j; break; }
-        for (j = 0; j < 120; j++) {
-            uint32_t idx = s0 + (uint32_t)((float)j * span / 120.0f);
+        for (j = 0; j < ZEIT_N; j++) {
+            uint32_t idx = s0 + (uint32_t)((float)j * span / (float)ZEIT_N);
             float y = idx < 4096 ? buf[idx] * 300.0f : 0.0f;
             wave_out[j] = (int8_t)(y > 127.0f ? 127 : y < -127.0f ? -127 : y);
         }

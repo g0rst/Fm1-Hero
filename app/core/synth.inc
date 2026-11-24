@@ -619,7 +619,7 @@ static void fab_render_core(int32_t *lr, uint32_t n, uint32_t gain_q12)
 
 /* Ein Klang einmal ohne Lautsprecher: sein Oszibild (eine Schwingung bei der Note, 120 Punkte) und sein Zeitbild
  * (Note 0,6 s gehalten, dann losgelassen; 120 Abschnitte zu 10 ms). In der Hauptschleife, einmal pro Auftrag. */
-static void syn_offline(const uint8_t *p, int note, int8_t *wave_out, int8_t *zeit_out, uint32_t bin)
+static void syn_offline(const uint8_t *p, int note, int8_t *wave_out, int8_t *zeit_out, uint32_t bin, int periods)
 {
     static voice_t tv;
     uint32_t i, hold = 60u * bin, total = ZEIT_N * bin;   /* die halbe Zeit gehalten, dann losgelassen */
@@ -646,10 +646,10 @@ static void syn_offline(const uint8_t *p, int note, int8_t *wave_out, int8_t *ze
     {
         float f = tv.inc1 > 0.0f ? tv.inc1 : 0.01f, per = 1.0f / f, span;
         uint32_t s0 = 0, j;
-        span = per * 2.0f;                      /* zwei ganze Schwingungen */
-        if (span > 2000.0f) span = 2000.0f;
+        span = per * (float)periods;            /* ganze Schwingungen, so viele wie gezoomt */
+        if (span > 3900.0f) span = 3900.0f;
         if (span < 30.0f) span = 30.0f;
-        for (j = 1; j < 2000; j++)
+        for (j = 1; j + (uint32_t)span < 4096u; j++)
             if (buf[j - 1] <= 0.0f && buf[j] > 0.0f) { s0 = j; break; }
         for (j = 0; j < 120; j++) {
             uint32_t idx = s0 + (uint32_t)((float)j * span / 120.0f);

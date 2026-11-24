@@ -62,6 +62,8 @@ Senden mit.
   zugehen; ein weißer Strich zeigt „jetzt“. Die Maschine wählt das passende Bild selbst (Tor, Hüllkurven, Echo:
   ZEIT; Wackler: ZEIT mit 2 Sekunden, bei Ziel „Ton“ WELLE; sonst WELLE), SEL schaltet um. Das Tor in der Leiste
   füllt sich mit der Lautstärke.
+  **PRESETS** (oder ALGORITHM) zoomt in der Werkstatt: das Zeitbild von 0,3 bis 4,8 Sekunden (zum Feineinstellen
+  von START und FALL), die Welle von 1 bis 8 Schwingungen.
 
 | Kapitel | Maschine | Lernziel |
 | --- | --- | --- |
@@ -92,7 +94,7 @@ Senden mit.
 | **GLO** | Tipp von Herrn Vogl (Geschichte und Auftrags-Modus „leicht“) |
 | **SEQ** | Schrittmaschine; im Live-Modus: zwischen Schritten und Fabrik der Spur |
 | **SAVE** | im Live-Modus speichern; auf der Platzwahl 3 s halten: Spielstand löschen |
-| **PRESETS** | im Live-Modus: Klang der freien Spuren aus dem Tonlager |
+| **PRESETS** | in der Werkstatt: Zoom des Oszis; im Live-Modus (Schritte): Klang der freien Spuren aus dem Tonlager |
 
 Fortschritt wird nach jedem Auftrag und jedem Kapitel von selbst gespeichert.
 

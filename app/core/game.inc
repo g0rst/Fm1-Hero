@@ -138,6 +138,7 @@ static struct {
     int8_t tgt_wave[120], tgt_zeit[120], own_wave[120], own_zeit[120];
     uint32_t pv_hash, pv_t, live_until;
     uint16_t pv_bin, tgt_bin;
+    uint8_t zoom_t, zoom_w, tgt_per, pv_per;   /* Zoom: Zeitbild 0..4 (0,3 .. 4,8 s), Welle 0..3 (1 .. 8 Schwingungen) */
     uint8_t pv_done;
     /* Dialog */
     const char *dlg, *dlg_page, *dlg_next;
@@ -498,8 +499,9 @@ static void job_build(void)
         if (compare(tgt_patch, bench, &w) == 3 && param_ok(P_W1))
             bench[P_W1] = tgt_patch[P_W1] == W_SAW ? W_SQR : W_SAW;
     }
-    syn_offline(tgt_patch, j->note ? j->note : 60, G.tgt_wave, G.tgt_zeit, 441);
+    syn_offline(tgt_patch, j->note ? j->note : 60, G.tgt_wave, G.tgt_zeit, 441, 2);
     G.tgt_bin = 441;
+    G.tgt_per = 2;
     G.pv_hash = 0;
 }
 static void tgt_play(void)
@@ -740,6 +742,18 @@ static void set_mach(int m)
     G.live_until = 0;                   /* das Bild zeigt gleich die Vorschau der neuen Maschine */
     G.mach = m;
     G.view = auto_view(m);
+    G.zoom_t = (uint8_t)(m == M_LFO || m == M_FX ? 3 : 2);
+    G.zoom_w = 1;
+}
+/* PRESETS oder ALGORITHM: der Ausschnitt des Oszis */
+static void zoom_input(void)
+{
+    int d = G.enc[FAB_E_PRESET] + G.enc[FAB_E_ALGO];
+    if (!d) return;
+    if (G.view) { int z = G.zoom_t + (d > 0 ? -1 : 1); G.zoom_t = (uint8_t)(z < 0 ? 0 : z > 4 ? 4 : z); }
+    else { int z = G.zoom_w + (d > 0 ? -1 : 1); G.zoom_w = (uint8_t)(z < 0 ? 0 : z > 3 ? 3 : z); }
+    G.live_until = 0;
+    sfx(SFX_BLIP, 70 + (G.view ? G.zoom_t : G.zoom_w) * 4);
 }
 static void select_mach(int dir)
 {
@@ -768,6 +782,7 @@ static void fabrik_input(int voice)
         if (prm >= 0 && param_ok(prm)) turn(p, prm, G.enc[FAB_E_K1 + i]);
     }
     play_keys(voice);
+    zoom_input();
 }
 
 /* ------------------------------------------------------------------ Werkstatt: Bild --- */
@@ -876,7 +891,10 @@ static void draw_band(const uint8_t *p, int y)
     if (ends) icon(IC_SPK, 11, 9, x + 1, y + 2, active ? C_WHT : C_LGRY);
 }
 /* Vorschau: der eigene Klang, ohne Taste berechnet, kurz nachdem sich ein Regler bewegt hat */
-static uint16_t view_bin(void) { return (uint16_t)(G.mach == M_LFO || G.mach == M_FX ? 882 : 441); }
+static const uint16_t ZBIN[5] = {110, 220, 441, 882, 1764};
+static const char *const ZLAB[5] = {"0,3 S", "0,6 S", "1,2 S", "2,4 S", "4,8 S"};
+static const uint8_t ZPER[4] = {1, 2, 4, 8};
+static uint16_t view_bin(void) { return ZBIN[G.zoom_t < 5 ? G.zoom_t : 2]; }
 static void preview_update(void)
 {
     const uint8_t *p = edit_patch();
@@ -885,16 +903,19 @@ static void preview_update(void)
     uint16_t bin = view_bin();
     for (i = 0; i < NP; i++) h = (h ^ p[i]) * 16777619u;
     h = (h ^ bin) * 16777619u;
+    h = (h ^ ZPER[G.zoom_w & 3]) * 16777619u;
     h = (h ^ (uint32_t)note) * 16777619u;
     if (bin != zeit_bin) { zeit_bin = bin; zeit_restart = 1; }
     if (h != G.pv_hash) { G.pv_hash = h; G.pv_t = G.now; G.pv_done = 0; }
     if (!G.pv_done && G.now - G.pv_t > 180u) {   /* erst, wenn der Regler kurz still steht */
-        syn_offline(p, note, G.own_wave, G.own_zeit, bin);
+        syn_offline(p, note, G.own_wave, G.own_zeit, bin, ZPER[G.zoom_w & 3]);
         G.pv_bin = bin;
+        G.pv_per = ZPER[G.zoom_w & 3];
         G.pv_done = 1;
-        if (G.job_on && JOBS[G.job].kind == JK_SOUND && G.tgt_bin != bin) {
-            syn_offline(tgt_patch, note, G.tgt_wave, G.tgt_zeit, bin);
+        if (G.job_on && JOBS[G.job].kind == JK_SOUND && (G.tgt_bin != bin || G.tgt_per != G.pv_per)) {
+            syn_offline(tgt_patch, note, G.tgt_wave, G.tgt_zeit, bin, G.pv_per);
             G.tgt_bin = bin;
+            G.tgt_per = G.pv_per;
         }
     }
     if (V[scope_v].s1 != E_IDLE) G.live_until = G.now + 1500u;
@@ -932,7 +953,7 @@ static void draw_scope(int y, int h, int show_own, int ghost)
             float inc = V[scope_v].inc1, span, pk = 0.02f;
             int prev = cy;
             int found = 0;
-            span = inc > 0.0f ? 2.0f / inc : 120.0f;   /* zwei ganze Schwingungen */
+            span = inc > 0.0f ? (float)ZPER[G.zoom_w & 3] / inc : 120.0f;   /* ganze Schwingungen, wie gezoomt */
             if (span > 3800.0f) span = 3800.0f;
             if (span < 30.0f) span = 30.0f;
             for (s = w - (uint32_t)span - 20u; s != st; s--)   /* der letzte Nulldurchgang nach oben, der passt */
@@ -963,10 +984,15 @@ static void draw_scope(int y, int h, int show_own, int ghost)
             text(36, y + 2, "VORSCHAU", C_DGRN, 1);
         }
         text(3, y + 2, "WELLE", C_DGRN, 1);
+        {
+            char zb[8];
+            put_str(put_int(zb, ZPER[G.zoom_w & 3]), "X");
+            text(GW - 14, y + h - 10, zb, C_DGRN, 1);
+        }
     } else {
         /* Zeit: Lautstärke von links nach rechts; der eigene Ton rollt mit, solange er klingt */
-        int base = y + h - 3, top = h - 9, secs = G.pv_bin == 882 ? 2 : 1;
-        for (i = 0; i <= 116; i += (secs == 1 ? 29 : 29)) { int yy; for (yy = base; yy > base - 3; yy--) px(2 + i, yy, C_DGRN); }
+        int base = y + h - 3, top = h - 9;
+        for (i = 0; i <= 116; i += 29) { int yy; for (yy = base; yy > base - 3; yy--) px(2 + i, yy, C_DGRN); }
         if (ghost)
             for (i = 0; i < 116; i++) {
                 int g = G.tgt_zeit[i] * top / 128;
@@ -982,7 +1008,7 @@ static void draw_scope(int y, int h, int show_own, int ghost)
                 if (g) rect(xx, base - g, 1, g, C_GRN);
             }
             if (V[scope_v].s1 != E_IDLE) rect(xx, y + 3, 1, h - 6, C_WHT);   /* jetzt */
-            if (sc == 2) text(GW - 20, base - 9, secs == 2 ? "4 S" : "2 S", C_DGRN, 1);
+            if (sc == 2) text(GW - 50, base - 9, "ZEIT X2", C_DGRN, 1);
         } else if (show_own && G.pv_done) {
             for (i = 0; i < 116; i++) {
                 int g = G.own_zeit[i] * top / 128;
@@ -992,7 +1018,7 @@ static void draw_scope(int y, int h, int show_own, int ghost)
             text(36, y + 2, "VORSCHAU", C_DGRN, 1);
         }
         text(3, y + 2, "ZEIT", C_DGRN, 1);
-        if (!(show_own && live && zeit_count > 116u)) text(GW - 20, base - 9, secs == 2 ? "2 S" : "1 S", C_DGRN, 1);
+        if (!(show_own && live && zeit_count > 116u)) text(GW - 32, base - 9, ZLAB[G.zoom_t < 5 ? G.zoom_t : 2], C_DGRN, 1);
     }
     if (ghost) text(GW - 32, y + 2, "KUNDE", C_PNK, 1);
 }
@@ -1018,8 +1044,9 @@ static void draw_status(int y)
         text(3, y + 1, T_PLAY "KUNDE", C_PNK, 1);
         text(62, y + 1, T_REC "LIEFERN", C_ORG, 1);
     } else {
-        text(2, y + 1, "SEL: WELLE/ZEIT", C_DGRY, 1);
-        if (G.kb_oct) {
+        if (!G.kb_oct) text(1, y + 1, "SEL:BILD PRESET:ZOOM", C_DGRY, 1);
+        else {
+            text(2, y + 1, "PRESET:ZOOM", C_DGRY, 1);
             char o[8] = "OCT";
             o[3] = G.kb_oct > 0 ? '+' : '-'; o[4] = (char)('0' + (G.kb_oct > 0 ? G.kb_oct : -G.kb_oct)); o[5] = 0;
             text(GW - 32, y + 1, o, C_ORG, 1);

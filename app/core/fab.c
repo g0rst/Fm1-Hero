@@ -29,6 +29,8 @@ void fab_init(uint32_t seed)
     make_patch(bench, 0);
     V[V_BENCH].p = bench;
     G.held_note_key = -1;
+    G.zoom_t = 2;                       /* 1,2 s */
+    G.zoom_w = 1;                       /* zwei Schwingungen */
     G.held_step = -1;
     G.screen = SC_TITLE;
     dirty_bits = (1u << FAB_STRIPS) - 1u;

@@ -195,6 +195,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
       <button type="button" id="devsend" class="primary">Senden</button>
       <span id="devstate" class="devhint">Die Stelle im Spiel und ein Bildschirmfoto kommen von selbst dazu.</span>
     </div>
+    <p id="devalt" class="devhint" hidden>Direkt senden geht hier nicht. So geht es trotzdem:
+      <a id="devlink" href="#" target="_blank" rel="noopener"><b>Meldung im GitHub-Formular öffnen</b></a> (dort nur noch „Create“ drücken)
+      oder <button type="button" id="devcopy2">Meldung kopieren</button></p>
     <details id="devsetup">
       <summary>Einmal einrichten: GitHub-Schlüssel</summary>
       <p class="devhint">Damit „Senden“ die Meldung sofort als Issue in g0rst/Fm1-Hero anlegt, braucht diese Seite einmal einen
@@ -496,6 +499,14 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
       return "https://raw.githubusercontent.com/" + OWNER + "/" + REPO_N + "/" + IMG_BRANCH + "/" + name;
     }).catch(function () { return ""; });
   }
+  /* wo direktes Senden nicht geht (ohne Schlüssel, oder die Seite darf GitHub nicht erreichen): ein fertiges Formular */
+  var altText = "";
+  function offerLink(n) {
+    var title = "[" + n.kind + "] " + n.text.split("\n")[0].slice(0, 70);
+    altText = title + "\n\n" + body(n, "");
+    $("devlink").href = REPO + "/issues/new?title=" + encodeURIComponent(title) + "&body=" + encodeURIComponent(body(n, "").slice(0, 6000));
+    $("devalt").hidden = false;
+  }
   function showLists() {
     var out = lsGet("tonfabrik-ausgang", []), sent = lsGet("tonfabrik-gesendet", []), l = $("devlist");
     $("devout").textContent = out.length ? out.length + (out.length === 1 ? " Meldung wartet" : " Meldungen warten") + " aufs Senden (sie gehen mit dem nächsten „Senden“ mit)." : "";
@@ -511,6 +522,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
     if (devBusy || !out.length) { showLists(); return; }
     if (!token()) {
       $("devsetup").open = true;
+      offerLink(out[out.length - 1]);
       state("Noch nicht gesendet: einmal den GitHub-Schlüssel eintragen (unten), dann geht alles von selbst.", false);
       showLists();
       return;
@@ -529,6 +541,12 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
       if (o.length) flush(); else showLists();
     }).catch(function (e) {
       devBusy = false;
+      if (!e.status) {                   /* gar keine Verbindung zu GitHub (hier gesperrt oder offline) */
+        offerLink(n);
+        state("Direkt senden geht hier nicht.", false);
+        showLists();
+        return;
+      }
       state("Senden ging nicht (" + e.message + "). Die Meldung wartet und geht beim nächsten Mal mit." +
         (e.status === 401 || e.status === 403 || e.status === 404 ? " Der Schlüssel passt nicht oder darf keine Issues anlegen." : ""), false);
       if (e.status === 401 || e.status === 403 || e.status === 404) $("devsetup").open = true;
@@ -566,6 +584,13 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
     });
     $("devtokendel").addEventListener("click", function () { try { localStorage.removeItem("tonfabrik-gh-token"); } catch (e) {} state("Schlüssel gelöscht."); });
     window.addEventListener("online", flush);
+    $("devlink").addEventListener("click", function () {   /* übers Formular gesendet: aus dem Ausgang nehmen */
+      var o = lsGet("tonfabrik-ausgang", []); o.pop(); lsSet("tonfabrik-ausgang", o);
+      setTimeout(function () { $("devalt").hidden = true; state("Im Formular geöffnet."); showLists(); }, 300);
+    });
+    $("devcopy2").addEventListener("click", function () {
+      try { navigator.clipboard.writeText(altText).then(function () { state("Kopiert.", true); }, function () { state("Kopieren ging nicht.", false); }); } catch (e) {}
+    });
     showLists();
     if (token()) flush();
   }

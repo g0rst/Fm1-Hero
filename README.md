@@ -82,7 +82,7 @@ Fortschritt wird nach jedem Auftrag und jedem Kapitel von selbst gespeichert.
 | Inhalte | geprüft: Texte passen auf den Bildschirm, jeder Auftrag ist lösbar und nicht schon gelöst |
 | FM-1-Anbindung (`app/app.c`) im Host-Simulator von fm1-base | läuft (`app/tests/basic.txt`) |
 | Browser-Version (`docs/index.html`) | läuft |
-| Firmware-Paket `.fwsc` | wird bei jedem Push von GitHub Actions gebaut (Artefakt `firmware`) |
+| Firmware-Paket `.fwsc` | wird bei jedem Push von GitHub Actions gebaut (Artefakt `firmware`); besteht die Prüfungen von fm1-base |
 | Lauf auf einem echten FM-1 | **noch nicht getestet** |
 
 Die Anbindung ist dieselbe wie bei ro:MINImal (fm1-base auf demselben Stand), das auf einem FM-1 läuft. Offen bis
@@ -100,8 +100,10 @@ nicht. Vorher auf die offizielle V15 gehen, Daten sichern und wissen, wie man zu
 | --- | --- | --- |
 | Spielstände im Flash | 3 × 352 B bei `0xB1000`, `0xB3000`, `0xB5000` (je ein Sektorpaar) | Fenster `0xB1000–0xBAFFF` |
 | Panel-Kalibrierung (Plattform) | `0xDC000` | Datenbereich von fm1-base |
-| RAM des Spiels (Bild 14 KB, Klang, Spielstände) | ca. 24 KB | 96 KB |
-| RAM-Pool (Echo 64 KB, Hall 13 KB) | ca. 77 KB | 336 KB |
+| Firmware-Image (Flash) | 144 284 B | 581 564 B (App-Slot) |
+| RAM .data + .bss (darin das Bild, 14 KB) | 40 188 B | 98 304 B |
+| RAM-Pool (Echo 64 KB, Hall 13 KB, fm1-base) | 147 732 B | 344 064 B |
+| RAM-Code (.ram_text) | 5 100 B | 32 768 B |
 | Klang, schlimmster Fall (9 Stimmen mit FM, Filter, Wackler, Kratz, Echo, Hall) | ca. 2 160 Instruktionen pro Sample (callgrind, x86-64) | Budget 8 163 Takte pro Sample |
 
 Die Spielstände liegen im selben Fenster wie bei ro:MINImal und berühren keinen geschützten Bereich: nicht Kopf und

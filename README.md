@@ -19,12 +19,13 @@ wollen, baust es nach und lieferst aus.
 Minispiele und LIVE sind offen, auf der Karte kann man frei springen, und **ARP** (Tastatur: A) überspringt, was gerade
 dran ist: Sprechblase, Aufgabe, Auftrag (mit 3 Sternen) oder Minispiel. Katze und Hund spielen normal; in der Firmware
 gibt es den Modus nicht.
-Unter dem Gerät erscheint dann **„Fehler melden oder kommentieren“**: Art wählen (Fehler, Änderungswunsch, Text,
-Schwierigkeit, Idee), aufschreiben, absenden. Die Stelle im Spiel kommt von selbst dazu (Platz, Bildschirm, Kapitel und
-Schritt mit dem Text von Herrn Vogl, Auftrag mit Sternen, Maschine, Reglerwerte, der ganze Patch und das Ziel).
-**„Als GitHub-Issue senden“** öffnet ein fertig ausgefülltes Issue in diesem Repository; „Bildschirmfoto speichern“
-legt das Display als PNG ab, zum Anhängen ans Issue. Notizen lassen sich auch nur lokal sammeln und alle auf einmal
-kopieren.
+Unter dem Gerät erscheinen dann ein großer Knopf **Überspringen** (wie ARP) und **„Meldung an die Entwicklung“**:
+Art wählen, aufschreiben, **Senden**. Die Meldung wird sofort als Issue in diesem Repository angelegt, mit der Stelle
+im Spiel (Platz, Bildschirm, Kapitel und Schritt mit dem Text von Herrn Vogl, Auftrag mit Sternen, Maschine,
+Reglerwerte, Patch und Ziel; erfasst, wenn man anfängt zu schreiben) und einem Bildschirmfoto (im Zweig
+`feedback-bilder`). Dafür braucht die Seite einmal einen GitHub-Schlüssel (fine-grained token nur für Fm1-Hero:
+Issues und Contents lesen und schreiben); er bleibt im Browser. Ohne Netz warten Meldungen und gehen beim nächsten
+Senden mit.
 
 **Handbuch für Eltern und Lehrkräfte:** [`docs/handbuch.html`](docs/handbuch.html)
 

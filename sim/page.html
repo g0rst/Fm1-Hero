@@ -141,6 +141,10 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
 .dev pre { white-space: pre-wrap; word-break: break-word; font-size: 12px; max-height: 120px; overflow: auto; background: rgba(0,0,0,.25); padding: 8px; border-radius: 6px; }
 .dev button, .dev select { font: inherit; padding: 6px 12px; border-radius: 6px; border: 1px solid #888; background: #2a2a2a; color: #eee; cursor: pointer; }
 .dev button.primary { background: #ffa300; color: #111; border-color: #ffa300; font-weight: 600; }
+.dev button.skip { background: #29adff; color: #04121c; border-color: #29adff; font-weight: 700; font-size: 18px; padding: 10px 18px; }
+.dev input[type=password] { flex: 1; min-width: 200px; font: inherit; padding: 6px 8px; border-radius: 6px; border: 1px solid #888; }
+.dev details { margin: 10px 0; }
+.dev summary { cursor: pointer; font-weight: 600; }
 .dev ol { font-size: 13px; margin: 6px 0 0; padding-left: 20px; }
 </style>
 </head>
@@ -172,8 +176,11 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
     <div class="keys" id="keys"></div>
   </div>
   <section class="dev" id="dev" hidden>
-    <h2>Entwicklermodus: Fehler melden oder kommentieren</h2>
-    <p class="devhint">Schreib, was nicht stimmt oder was anders sein soll. Wo du im Spiel gerade bist, kommt von selbst dazu (beim Klick auf „Stelle merken“ oder beim Senden).</p>
+    <div class="devrow">
+      <button type="button" id="devskip" class="skip">⏭ Überspringen</button>
+      <span class="devhint">springt über Sprechblase, Aufgabe, Auftrag (3 Sterne) oder Minispiel. Dasselbe wie die Taste ARP (am Computer: A).</span>
+    </div>
+    <h2>Meldung an die Entwicklung</h2>
     <div class="devrow">
       <select id="devkind" aria-label="Art">
         <option value="Fehler">Fehler</option>
@@ -182,17 +189,31 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
         <option value="Schwierigkeit">zu leicht / zu schwer</option>
         <option value="Idee">Idee</option>
       </select>
-      <button type="button" id="devgrab">Stelle merken</button>
     </div>
-    <textarea id="devtext" rows="4" placeholder="Was ist dir aufgefallen?"></textarea>
-    <pre id="devctx">(noch keine Stelle gemerkt)</pre>
+    <textarea id="devtext" rows="3" placeholder="Was ist dir aufgefallen?"></textarea>
     <div class="devrow">
-      <button type="button" id="devissue" class="primary">Als GitHub-Issue senden</button>
-      <button type="button" id="devshot">Bildschirmfoto speichern</button>
-      <button type="button" id="devkeep">Nur lokal merken</button>
-      <button type="button" id="devcopy">Alle Notizen kopieren</button>
+      <button type="button" id="devsend" class="primary">Senden</button>
+      <span id="devstate" class="devhint">Die Stelle im Spiel und ein Bildschirmfoto kommen von selbst dazu.</span>
     </div>
-    <ol id="devlist"></ol>
+    <details id="devsetup">
+      <summary>Einmal einrichten: GitHub-Schlüssel</summary>
+      <p class="devhint">Damit „Senden“ die Meldung sofort als Issue in g0rst/Fm1-Hero anlegt, braucht diese Seite einmal einen
+      Schlüssel. Er bleibt nur in diesem Browser.</p>
+      <ol class="devhint">
+        <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Neuen Schlüssel anlegen</a> (fine-grained token), Name z. B. „Tonfabrik-Meldungen“.</li>
+        <li>Repository access: <b>Only select repositories</b> → <b>Fm1-Hero</b>.</li>
+        <li>Permissions → Repository: <b>Issues: Read and write</b>; für die Bildschirmfotos auch <b>Contents: Read and write</b>.</li>
+        <li>Erzeugen, kopieren, hier einfügen:</li>
+      </ol>
+      <div class="devrow">
+        <input type="password" id="devtoken" placeholder="github_pat_…" autocomplete="off">
+        <button type="button" id="devtokensave">Speichern</button>
+        <button type="button" id="devtokendel">Löschen</button>
+      </div>
+      <p class="devhint">Die Bildschirmfotos landen im Zweig <code>feedback-bilder</code> des Repositorys, nicht in main.</p>
+    </details>
+    <p id="devout" class="devhint"></p>
+    <ol id="devlist" class="devhint"></ol>
   </section>
   <section class="help">
     <h2>So spielst du</h2>
@@ -208,7 +229,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
       <li>Schrittmaschine und LIVE: die 16 weißen Tasten sind die Schritte, die schwarzen wählen die Spur. Schritt halten und KNOB1 drehen: sein Ton. KNOB2 Tempo, KNOB3 Lautstärke, KNOB4 Swing, PLAY startet.</li>
       <li>LIVE: <b>SEQ</b> oder <b>EDIT</b> öffnet die Fabrik der Spur, dort spielen die Tasten und REC nimmt auf. PRESETS wählt bei FREI 1 und 2 einen Klang aus dem Tonlager. SEL schaltet die Spur stumm, SAVE speichert.</li>
       <li>Computer-Tastatur: Enter = SEL, Esc = HOME, Leertaste = PLAY, R = REC, G = GLO, A = ARP.</li>
-      <li><b>Entwicklermodus:</b> Der dritte Platz (Frosch, „ENTWICKLER“) hat hier im Browser alle Kapitel, Aufträge, Minispiele und LIVE offen. Auf der Karte frei springen; <b>ARP</b> überspringt, was gerade dran ist (Sprechblase, Aufgabe, Auftrag mit 3 Sternen, Minispiel). Katze und Hund spielen normal. Im Gerät gibt es diesen Modus nicht.</li>
+      <li><b>Entwicklermodus:</b> Der dritte Platz (Frosch, „ENTWICKLER“) hat hier im Browser alle Kapitel, Aufträge, Minispiele und LIVE offen. Auf der Karte frei springen; der blaue Knopf <b>Überspringen</b> unter dem Gerät (oder ARP, am Computer A) springt über Sprechblase, Aufgabe, Auftrag oder Minispiel. Meldungen gehen mit <b>Senden</b> direkt als Issue an die Entwicklung. Katze und Hund spielen normal. Im Gerät gibt es diesen Modus nicht.</li>
     </ul>
   </section>
   <p class="note">Spielstände bleiben in diesem Browser gespeichert (drei Plätze, wie im Gerät). Die Firmware baut auf fm1-base auf, wie ro:MINImal.</p>
@@ -431,56 +452,122 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
     requestAnimationFrame(frame);
   }
 
-  /* ---- Entwicklermodus: Fehler melden, direkt als GitHub-Issue ---- */
-  var REPO = "https://github.com/g0rst/Fm1-Hero";
-  var devCtx = "", devShot = "", devTick = 0;
+  /* ---- Entwicklermodus: Überspringen und Meldungen, direkt als GitHub-Issue ---- */
+  var OWNER = "g0rst", REPO_N = "Fm1-Hero", API = "https://api.github.com/repos/" + OWNER + "/" + REPO_N;
+  var REPO = "https://github.com/" + OWNER + "/" + REPO_N, IMG_BRANCH = "feedback-bilder";
+  var devCtx = "", devShot = "", devTick = 0, devBusy = false;
   function devContext() {
     var n = w.sim_context(), b = new Uint8Array(w.memory.buffer, w.sim_obj(), n);
     return new TextDecoder("utf-8").decode(b.slice(0));
   }
-  function devGrab() {
-    devCtx = devContext();
-    devShot = $("lcd").toDataURL("image/png");
-    $("devctx").textContent = devCtx;
+  function devGrab() { devCtx = devContext(); devShot = $("lcd").toDataURL("image/png"); }
+  function lsGet(k, d) { try { var v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function token() { try { return localStorage.getItem("tonfabrik-gh-token") || ""; } catch (e) { return ""; } }
+  function state(t, ok) { var e = $("devstate"); e.textContent = t; e.style.color = ok === false ? "#ff6b6b" : ok ? "#3be36b" : ""; }
+  function body(n, img) {
+    return n.text + "\n\n---\n**Stelle im Spiel** (Browser-Version, Entwicklermodus, " + n.when + "):\n\n```\n" + n.ctx + "\n```\n" +
+      (img ? "\n![Bildschirm](" + img + ")\n" : "");
   }
-  function devNotes() { try { return JSON.parse(localStorage.getItem("tonfabrik-notizen") || "[]"); } catch (e) { return []; } }
-  function devShow() {
-    var l = $("devlist"), notes = devNotes();
+  function gh(method, path, data) {
+    return fetch(API + path, {
+      method: method,
+      headers: { "Authorization": "Bearer " + token(), "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" },
+      body: data ? JSON.stringify(data) : undefined
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok) { var e = new Error((j && j.message) || ("HTTP " + r.status)); e.status = r.status; throw e; }
+        return j;
+      });
+    });
+  }
+  /* das Bildschirmfoto in den Zweig feedback-bilder (wenn der Schlüssel das darf); sonst ohne Bild */
+  function upload(n) {
+    if (!n.shot) return Promise.resolve("");
+    var name = "feedback/" + n.when.replace(/[:.]/g, "-") + ".png";
+    return gh("GET", "/git/ref/heads/" + IMG_BRANCH).catch(function (e) {
+      if (e.status !== 404) throw e;
+      return gh("GET", "/git/ref/heads/main").then(function (m) {
+        return gh("POST", "/git/refs", { ref: "refs/heads/" + IMG_BRANCH, sha: m.object.sha });
+      });
+    }).then(function () {
+      return gh("PUT", "/contents/" + name, { message: "Bildschirmfoto zu einer Meldung", content: n.shot.split(",")[1], branch: IMG_BRANCH });
+    }).then(function () {
+      return "https://raw.githubusercontent.com/" + OWNER + "/" + REPO_N + "/" + IMG_BRANCH + "/" + name;
+    }).catch(function () { return ""; });
+  }
+  function showLists() {
+    var out = lsGet("tonfabrik-ausgang", []), sent = lsGet("tonfabrik-gesendet", []), l = $("devlist");
+    $("devout").textContent = out.length ? out.length + (out.length === 1 ? " Meldung wartet" : " Meldungen warten") + " aufs Senden (sie gehen mit dem nächsten „Senden“ mit)." : "";
     l.textContent = "";
-    notes.forEach(function (n) { var li = document.createElement("li"); li.textContent = "[" + n.kind + "] " + n.text + " — " + n.ctx.slice(0, 120) + "…"; l.appendChild(li); });
+    sent.slice(-8).reverse().forEach(function (s) {
+      var li = document.createElement("li"), a = document.createElement("a");
+      a.href = s.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "#" + s.num + " " + s.title;
+      li.appendChild(a); l.appendChild(li);
+    });
   }
-  function devNote() {
-    if (!devCtx) devGrab();
-    return { kind: $("devkind").value, text: $("devtext").value.trim(), ctx: devCtx, when: new Date().toISOString() };
-  }
-  function devBody(n) {
-    return n.text + "\n\n---\n**Stelle im Spiel** (Browser-Version, Entwicklermodus, " + n.when + "):\n\n```\n" + n.ctx + "\n```\n";
+  function flush() {
+    var out = lsGet("tonfabrik-ausgang", []);
+    if (devBusy || !out.length) { showLists(); return; }
+    if (!token()) {
+      $("devsetup").open = true;
+      state("Noch nicht gesendet: einmal den GitHub-Schlüssel eintragen (unten), dann geht alles von selbst.", false);
+      showLists();
+      return;
+    }
+    devBusy = true;
+    state("Sende …");
+    var n = out[0];
+    upload(n).then(function (img) {
+      return gh("POST", "/issues", { title: "[" + n.kind + "] " + n.text.split("\n")[0].slice(0, 70), body: body(n, img) });
+    }).then(function (iss) {
+      var o = lsGet("tonfabrik-ausgang", []), sent = lsGet("tonfabrik-gesendet", []);
+      o.shift(); lsSet("tonfabrik-ausgang", o);
+      sent.push({ num: iss.number, url: iss.html_url, title: iss.title }); lsSet("tonfabrik-gesendet", sent);
+      state("Gesendet ✓ #" + iss.number, true);
+      devBusy = false;
+      if (o.length) flush(); else showLists();
+    }).catch(function (e) {
+      devBusy = false;
+      state("Senden ging nicht (" + e.message + "). Die Meldung wartet und geht beim nächsten Mal mit." +
+        (e.status === 401 || e.status === 403 || e.status === 404 ? " Der Schlüssel passt nicht oder darf keine Issues anlegen." : ""), false);
+      if (e.status === 401 || e.status === 403 || e.status === 404) $("devsetup").open = true;
+      showLists();
+    });
   }
   function devInit() {
-    $("devgrab").addEventListener("click", devGrab);
-    $("devissue").addEventListener("click", function () {
-      var n = devNote();
-      if (!n.text) { $("devtext").focus(); return; }
-      var title = "[" + n.kind + "] " + n.text.split("\n")[0].slice(0, 70);
-      window.open(REPO + "/issues/new?title=" + encodeURIComponent(title) + "&body=" + encodeURIComponent(devBody(n)), "_blank");
+    var old = lsGet("tonfabrik-notizen", null);   /* frühere, nur gemerkte Notizen kommen in den Ausgang */
+    if (old && old.length) {
+      var out = lsGet("tonfabrik-ausgang", []);
+      old.forEach(function (n) { out.push({ kind: n.kind, text: n.text || "(ohne Text)", ctx: n.ctx, when: n.when, shot: "" }); });
+      lsSet("tonfabrik-ausgang", out);
+      try { localStorage.removeItem("tonfabrik-notizen"); } catch (e) {}
+    }
+    $("devskip").addEventListener("click", function () { latch.b |= 1 << 8; audioKick(); });
+    $("devtext").addEventListener("focus", function () { if (!$("devtext").value) devGrab(); });   /* die Stelle, an der du zu schreiben anfängst */
+    $("devsend").addEventListener("click", function () {
+      var t = $("devtext").value.trim(), out;
+      if (!t) { $("devtext").focus(); state("Erst kurz aufschreiben, was los ist.", false); return; }
+      if (!devCtx) devGrab();
+      out = lsGet("tonfabrik-ausgang", []);
+      out.push({ kind: $("devkind").value, text: t, ctx: devCtx, shot: devShot, when: new Date().toISOString() });
+      lsSet("tonfabrik-ausgang", out);
+      $("devtext").value = ""; devCtx = ""; devShot = "";
+      flush();
     });
-    $("devshot").addEventListener("click", function () {
-      if (!devShot) devGrab();
-      var a = document.createElement("a"); a.href = devShot; a.download = "tonfabrik-" + Date.now() + ".png"; a.click();
+    $("devtokensave").addEventListener("click", function () {
+      var v = $("devtoken").value.trim();
+      if (!v) return;
+      try { localStorage.setItem("tonfabrik-gh-token", v); } catch (e) {}
+      $("devtoken").value = "";
+      $("devsetup").open = false;
+      state("Schlüssel gespeichert.", true);
+      flush();
     });
-    $("devkeep").addEventListener("click", function () {
-      var n = devNote(), notes = devNotes();
-      if (!n.text) { $("devtext").focus(); return; }
-      notes.push(n);
-      try { localStorage.setItem("tonfabrik-notizen", JSON.stringify(notes)); } catch (e) {}
-      $("devtext").value = ""; devCtx = ""; $("devctx").textContent = "(noch keine Stelle gemerkt)";
-      devShow();
-    });
-    $("devcopy").addEventListener("click", function () {
-      var t = devNotes().map(function (n, i) { return (i + 1) + ". [" + n.kind + "] " + devBody(n); }).join("\n");
-      if (navigator.clipboard) navigator.clipboard.writeText(t);
-    });
-    devShow();
+    $("devtokendel").addEventListener("click", function () { try { localStorage.removeItem("tonfabrik-gh-token"); } catch (e) {} state("Schlüssel gelöscht."); });
+    window.addEventListener("online", flush);
+    showLists();
+    if (token()) flush();
   }
   function devPoll() {                   /* der Bereich erscheint nur auf dem Entwicklerplatz (3) */
     if (++devTick % 20) return;

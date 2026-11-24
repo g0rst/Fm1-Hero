@@ -2,7 +2,7 @@
 
 Ein Lernspiel über Synthesizer für Kinder ab 7, als Firmware für den **M-VAVE FM-1**.
 
-Du erbst die Tonfabrik von Onkel Otto. Hier werden Töne aus Strom gebaut, für alle, die einen brauchen. Der Vorarbeiter
+Du erbst die Tonfabrik von Onkel Alex. Hier werden Töne aus Strom gebaut, für alle, die einen brauchen. Der Vorarbeiter
 **Herr Vogl**, ein Specht mit gelbem Helm, zeigt dir Maschine für Maschine: erst den Klopfer, aus dem bei 20 Stößen pro
 Sekunde ein Ton wird, dann Schwinger, Tor, Hüllkurve, Filter, Wackler, Echo, Schrittmaschine und FM. Danach rufen
 Kundinnen und Kunden an: Die Blaskapelle braucht vor dem Stadtfest eine neue Trommel, die Kuh Lotte hat ihre Stimme
@@ -25,7 +25,11 @@ wollen, baust es nach und lieferst aus.
   Fledermäuse) und ein wenig Musiktheorie (Oktave, Takt, BPM, Dur und Moll).
 - **35 Aufträge (33 Klänge, 2 Takte) und 3 Minispiele** (Hoch oder tief?, Welche Welle?, Spiel mir nach!). Bewertet wird mit 1 bis 3 Sternen.
   Verglichen werden nur die Regler, die das Kind schon kennt; der Rest kommt fertig auf den Werktisch. Liegt es daneben,
-  sagt Herr Vogl, was nicht passt („Zu hell! Dreh den Filter zu.“).
+  sagt Herr Vogl, was nicht passt („Zu hell! Dreh den Filter zu.“), und ob es nur ein bisschen oder weit daneben ist.
+  Die Bewertung ist streng: 3 Sterne bis 5 Schritte daneben, bestanden nur bis 16 (Klopfer-Frequenz: bis 6 Schritte,
+  also etwa ±25 %). Alle Regler zeigen ihren genauen Wert, eine Raste ist ein Schritt. In der Geschichte und auf
+  „leicht“ zeigen drei Sterne oben rechts laufend, wie nah der Klang schon ist. Die Aufgaben von Herrn Vogl nennen
+  genaue Ziele („K1: Stell 1 Hz ein!“, „K2 Fall auf 90!“) statt „dreh mal auf“.
 - **Auftrags-Modus**: endlos neue Anrufe, jedes Mal etwas anders, in drei Stufen: **leicht** mit Oszi und Tipps,
   **mittel** nur mit Oszi, **schwer** nur mit den Ohren.
 - **Live-Modus**: 16-Step-Sequencer mit vier festen Spuren (Trommel, Klatsch, Zisch, Bass) und zwei freien, deren
@@ -37,8 +41,9 @@ wollen, baust es nach und lieferst aus.
   leuchtet grün für richtig, rot für falsch. Die Sterne laufen als Lauflicht über die Tasten. Genutzt werden alle
   Stufen der FM-1-LEDs: aus, glimmend, mittel, hell.
 - **Bild**: 120 × 120 Pixel in 16 Farben, doppelt so groß aufs Display. Das spart Speicher (14 KB statt 112 KB) und gibt
-  den Pixel-Look. Ein Oszilloskop zeigt die Welle (WELLE) oder die Lautstärke über die Zeit (ZEIT), dazu blassrosa
-  die Welle der Kundschaft.
+  den Pixel-Look. Die Werkstatt ist ein Bild: oben die Maschinen als Leiste in der Reihenfolge des Klangs (Strom bis
+  Lautsprecher, dann die Steuer-Maschinen), darunter groß das Oszilloskop mit der Welle (WELLE, mit der Frequenz in
+  Hz) oder der Lautstärke über die Zeit (ZEIT), dazu blassrosa die Welle der Kundschaft; unten die vier Regler.
 
 | Kapitel | Maschine | Lernziel |
 | --- | --- | --- |

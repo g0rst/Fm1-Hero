@@ -390,8 +390,8 @@ static int pstars(int p, int a, int b)
 {
     int d = a > b ? a - b : b - a;
     if (categorical(p)) return d ? 0 : 3;
-    if (p == P_HZ) return d <= 7 ? 3 : d <= 14 ? 2 : d <= 22 ? 1 : 0;
-    return d <= 14 ? 3 : d <= 26 ? 2 : d <= 40 ? 1 : 0;
+    if (p == P_HZ) return d <= 2 ? 3 : d <= 4 ? 2 : d <= 6 ? 1 : 0;   /* 1 Schritt: etwa 6 % der Frequenz */
+    return d <= 5 ? 3 : d <= 10 ? 2 : d <= 16 ? 1 : 0;
 }
 static int relevant(int p, const uint8_t *t, const uint8_t *b)
 {
@@ -428,10 +428,17 @@ static int compare(const uint8_t *t, const uint8_t *b, int *worst)
 }
 static const char *hint_for(int p)
 {
-    if (p < 0) return "SUPER! DAS PASST SCHON GUT.";
+    static char hb[96];
+    const char *h;
+    int d;
+    if (p < 0) return "SUPER! DAS PASST GENAU.";
     if (p == P_W1) return WAVE_HINT[tgt_patch[P_W1]];
     if (p == P_W2) return "SCHWINGER 2 BRAUCHT EINE ANDERE WELLE.";
-    return bench[p] > tgt_patch[p] ? HINT_HI[p] : HINT_LO[p];
+    h = bench[p] > tgt_patch[p] ? HINT_HI[p] : HINT_LO[p];
+    d = bench[p] > tgt_patch[p] ? bench[p] - tgt_patch[p] : tgt_patch[p] - bench[p];
+    if (categorical(p)) return h;
+    put_str(put_str(hb, d <= (p == P_HZ ? 4 : 10) ? "FAST! NUR EIN BISSCHEN: " : d >= 40 ? "NOCH GANZ WEIT WEG. " : ""), h);
+    return hb;
 }
 
 /* ------------------------------------------------------------------ Auftrag --- */
@@ -578,6 +585,7 @@ static int story_wait_done(const op_t *o)
         case CMP_GE: return v >= o->c;
         case CMP_LE: return v <= o->c;
         case CMP_EQ: return v == o->c;
+        case CMP_NEAR: { int d = v - o->c, t = o->a == P_HZ ? 1 : 2; return d >= -t && d <= t; }
         default: { int d = v - P_INIT[o->a]; return (d < 0 ? -d : d) >= o->c; }
         }
     }
@@ -626,7 +634,7 @@ static int turn(uint8_t *p, int param, int det)
     int v = p[param], mx = P_MAX[param], step;
     if (!det) return 0;
     if (param == P_DRONE) return 0;
-    step = mx > 10 ? (det > 1 || det < -1 ? det * 3 : det * 2) : (det > 0 ? 1 : -1);
+    step = mx > 10 ? (det > 1 || det < -1 ? det * 3 : det) : (det > 0 ? 1 : -1);   /* eine Raste: genau 1 */
     v += step;
     if (v < 0) v = 0;
     if (v > mx) v = mx;
@@ -741,89 +749,61 @@ static void draw_knobs(const uint8_t *p, int y)
         if (i & 1) rect(i * 30, y, 30, GH - y, C_BLK);
         if (G.mach == M_OSC1 && prm == P_HZ) lab = "KLOPF";
         if (prm < 0 || !param_ok(prm)) {
-            if (lab[0]) text_c(cx, y + 2, lab, C_DGRY, 1);
+            if (lab[0]) text_c(cx, y + 1, lab, C_DGRY, 1);
             text_c(cx, y + 18, "-", C_DGRY, 1);
             continue;
         }
-        text_c(cx, y + 2, lab, C_LGRY, 1);
+        text_c(cx, y + 1, lab, C_LGRY, 1);
         {
             int v = p[prm], mx = P_MAX[prm];
-            draw_knob(cx, y + 17, mx ? v * 1000 / mx : 0, C_YEL);
+            draw_knob(cx, y + 15, mx ? v * 1000 / mx : 0, C_YEL);
             if (vkind(prm) == VK_WAVE || vkind(prm) == VK_LWAVE) {
                 int w = vkind(prm) == VK_WAVE ? v : (v == 0 ? 0 : v == 1 ? 3 : v == 2 ? 2 : 4);
-                mini_wave(w, cx - 4, y + 28, C_GRN);
-            } else if (vkind(prm) == VK_BAR) {
-                rect(cx - 12, y + 30, 25, 3, C_DGRY);
-                rect(cx - 12, y + 30, 1 + v * 24 / 127, 3, C_GRN);
+                mini_wave(w, cx - 4, y + 25, C_GRN);
             } else {
                 char b[12];
-                value_text(prm, v, b);
-                text_c(cx, y + 28, b, C_GRN, 1);
+                value_text(prm, v, b);  /* die genaue Zahl: Aufträge und Aufgaben nennen Zahlen */
+                text_c(cx, y + 23, b, C_GRN, 1);
+                if (vkind(prm) == VK_BAR) {
+                    rect(cx - 12, y + 32, 25, 2, C_DGRY);
+                    rect(cx - 12, y + 32, 1 + v * 24 / 127, 2, C_GRN);
+                }
             }
         }
     }
 }
-/* das Fließband mit den Maschinen; liefert die Mitte jeder Maschine */
-static int mach_x[NM], mach_y[NM];
+/* die Maschinen als eine Leiste: die Kette des Klangs (Strom bis Lautsprecher), dann die Steuer-Maschinen */
 static void draw_band(const uint8_t *p, int y)
 {
-    int i, n = 0, slots, sw, x;
-    uint8_t vis[6];
-    int active = V[scope_v].s1 != E_IDLE;
-    rect(0, y, GW, 34, C_BLK);
+    int i, n = 0, nm = 0, x, w, ends, active = V[scope_v].s1 != E_IDLE;
+    uint8_t vis[6], mod[3];
+    rect(0, y, GW, 13, C_BLK);
     for (i = 0; i < 6; i++) if (mach_ok(MAIN_ROW[i])) vis[n++] = MAIN_ROW[i];
-    slots = n + 2;
-    sw = GW / slots;
-    /* Band */
-    rect(0, y + 30, GW, 2, C_DGRY);
-    for (x = 0; x < GW; x += 6) {
-        int o = active ? (int)(G.fr / 2u % 6u) : 0;
-        px(x + o, y + 31, C_LGRY);
-    }
-    for (i = 0; i < NM; i++) mach_x[i] = -100;
-    icon(IC_BOLT, 11, 9, sw / 2 - 5, y + 18, C_YEL);
-    icon(IC_SPK, 11, 9, (slots - 1) * sw + sw / 2 - 5, y + 18, active ? C_WHT : C_LGRY);
-    for (i = 0; i < n; i++) {
-        int m = vis[i], cx = (i + 1) * sw + sw / 2;
+    for (i = 0; i < 3; i++) if (mach_ok(MOD_ROW[i])) mod[nm++] = MOD_ROW[i];
+    ends = n + nm <= 7;                 /* Platz für Blitz und Lautsprecher */
+    w = n + nm >= 9 ? 12 : 13;
+    x = (GW - (n + nm + 2 * ends) * w - (nm ? 4 : 0)) / 2;
+    if (ends) { icon(IC_BOLT, 11, 9, x + 1, y + 2, C_YEL); x += w; }
+    for (i = 0; i < n + nm; i++) {
+        int m = i < n ? vis[i] : mod[i - n];
         int sel = m == G.mach, isnew = m == G.new_mach && G.now - G.new_t0 < 3000u;
-        int ec = sel ? C_YEL : isnew && blink(4) ? C_WHT : C_DGRY;
-        mach_x[m] = cx; mach_y[m] = y + 22;
-        round_box(cx - 8, y + 15, 17, 14, sel ? C_PLUM : C_NAVY, ec);
-        icon(m == M_OSC1 && p[P_DRONE] ? IC_KLOPF : MACH[m].ic, 11, 9, cx - 5, y + 18, sel ? C_WHT : C_LGRY);
-        if (active && i < n) {          /* Tonpakete laufen das Band entlang */
-            int t = (int)((G.fr * 2u + (uint32_t)i * 13u) % (uint32_t)sw);
-            px(cx + 9 + t * (sw - 17) / sw, y + 29, C_GRN);
-        }
+        int ec = sel ? C_YEL : isnew && blink(4) ? C_WHT : i < n ? C_DGRY : C_LAV;
+        if (i == n && nm) { rect(x + 1, y + 2, 1, 9, C_DGRY); x += 4; }
+        round_box(x, y, w, 13, sel ? C_PLUM : C_NAVY, ec);
+        icon(m == M_OSC1 && p[P_DRONE] ? IC_KLOPF : MACH[m].ic, 11, 9, x + 1, y + 2, sel ? C_WHT : C_LGRY);
+        if (m == M_ENV2) text(x + 8, y + 5, "2", C_YEL, 1);
+        if (active && i < n && (G.fr / 4u) % (uint32_t)n == (uint32_t)i) px(x + w / 2, y + 12, C_GRN);   /* der Ton läuft durch */
+        x += w;
     }
-    /* Steuer-Maschinen oben, mit Kabel zu ihrem Ziel */
-    {
-        int m2[3], k = 0, j;
-        for (i = 0; i < 3; i++) if (mach_ok(MOD_ROW[i])) m2[k++] = MOD_ROW[i];
-        for (j = 0; j < k; j++) {
-            int m = m2[j], cx = GW - (k - j) * 19 + 8, tgt;
-            int sel = m == G.mach, isnew = m == G.new_mach && G.now - G.new_t0 < 3000u;
-            int ec = sel ? C_YEL : isnew && blink(4) ? C_WHT : C_DGRY;
-            mach_x[m] = cx; mach_y[m] = y + 6;
-            tgt = m == M_ENV1 ? M_VCA : m == M_ENV2 ? (p[P_FENV] != 64 || !mach_ok(M_VCF) ? M_VCF : M_OSC1)
-                : p[P_LTGT] == L_PITCH ? M_OSC1 : p[P_LTGT] == L_CUT ? M_VCF : M_VCA;
-            if (m == M_ENV2 && (p[P_PITCH] != 64 && p[P_FENV] == 64)) tgt = M_OSC1;
-            if (mach_x[tgt] > -50) {
-                int tx = mach_x[tgt], yy;
-                for (yy = y + 13; yy < y + 15; yy++) px(cx, yy, C_DGRY);
-                for (x = (tx < cx ? tx : cx); x <= (tx < cx ? cx : tx); x += 2) px(x, y + 14, C_DGRY);
-            }
-            round_box(cx - 8, y, 17, 13, sel ? C_PLUM : C_NAVY, ec);
-            icon(MACH[m].ic, 11, 9, cx - 5, y + 2, sel ? C_WHT : C_LGRY);
-            if (m == M_ENV2) text(cx + 4, y + 6, "2", C_YEL, 1);
-        }
-    }
+    if (ends) icon(IC_SPK, 11, 9, x + 1, y + 2, active ? C_WHT : C_LGRY);
 }
 static void draw_scope(int y, int h, int show_own, int ghost)
 {
     int i, cy = y + h / 2;
-    int amp = h / 2 - 2;
+    int amp = h / 2 - 3;
     round_box(0, y, GW, h, C_BLK, C_DGRN);
-    for (i = 4; i < GW - 4; i += 4) px(i, cy, C_DGRN);
+    for (i = 4; i < GW - 4; i += 4) { px(i, cy, C_DGRN); px(i, cy - amp, C_NAVY); px(i, cy + amp, C_NAVY); }
+    for (i = 30; i < GW; i += 30) { int yy; for (yy = y + 3; yy < y + h - 3; yy += 4) px(i, yy, C_NAVY); }
     if (!show_own && !ghost) {
         text_c(60, cy - 3, "NUR MIT DEN OHREN!", C_LGRY, 1);
         return;
@@ -854,8 +834,14 @@ static void draw_scope(int y, int h, int show_own, int ghost)
                 if (v > 127.0f) v = 127.0f;
                 if (v < -127.0f) v = -127.0f;
                 yy = cy - (int)v * amp / 128;
-                if (i) line(2 + i - 1, prev, 2 + i, yy, C_GRN);
+                if (i) { line(2 + i - 1, prev, 2 + i, yy, C_GRN); px(2 + i, yy + 1, C_DGRN); }
                 prev = yy;
+            }
+            if (V[scope_v].s1 != E_IDLE && inc > 0.0f) {   /* die Frequenz, die gerade klingt */
+                char b[12];
+                int hz = (int)(inc * FAB_SR + 0.5f);
+                put_str(put_int(b, hz), " HZ");
+                text(36, y + 2, b, C_GRN, 1);
             }
         }
         text(3, y + 2, "WELLE", C_DGRN, 1);
@@ -864,11 +850,11 @@ static void draw_scope(int y, int h, int show_own, int ghost)
         int base = y + h - 3;
         for (i = 0; i < ZEIT_N && i < 116; i++) {
             if (ghost) {
-                int g = G.tgt_zeit[i] * (h - 6) / 128;
-                if (g) px(2 + i, base - g, C_PNK);
+                int g = G.tgt_zeit[i] * (h - 8) / 128;
+                if (g) { px(2 + i, base - g, C_PNK); px(2 + i, base - g + 1, C_PNK); }
             }
             if (show_own && i < zeit_pos) {
-                int g = zeit_mx[i] * (h - 6) / 128;
+                int g = zeit_mx[i] * (h - 8) / 128;
                 if (g) rect(2 + i, base - g, 1, g, C_GRN);
             }
         }
@@ -884,37 +870,50 @@ static void draw_top(const char *t, int c)
 static void draw_status(int y)
 {
     const char *ins = story_instr();
-    rect(0, y, GW, 9, C_BLK);
     if (ins) {
         int n = text_len(ins);
+        rect(1, y, GW - 2, 9, C_NAVY);
         if (n <= 18) {
-            if (blink(1)) text(1, y + 1, T_RIGHT, C_YEL, 1);
+            if (blink(1)) text(2, y + 1, T_RIGHT, C_YEL, 1);
             text(8 + (112 - n * 6) / 2, y + 1, ins, C_YEL, 1);
         } else
             text_c(60, y + 1, ins, blink(1) ? C_YEL : C_ORG, 1);
     } else if (G.job_on) {
-        text(2, y + 1, T_PLAY "KUNDE", C_PNK, 1);
+        rect(1, y, GW - 2, 9, C_NAVY);
+        text(3, y + 1, T_PLAY "KUNDE", C_PNK, 1);
         text(62, y + 1, T_REC "LIEFERN", C_ORG, 1);
     }
+}
+/* wie nah der Klang schon ist (Geschichte und "leicht"): 0..3 Sterne, laufend */
+static int live_match(void)
+{
+    int w;
+    if (!G.job_on || JOBS[G.job].kind != JK_SOUND || (G.free && G.diff != D_LEICHT)) return -1;
+    return compare(tgt_patch, bench, &w);
 }
 static void draw_work(void)
 {
     char t[32];
     const uint8_t *p = edit_patch();
-    int show_own = 1, ghost = G.job_on;
+    int show_own = 1, ghost = G.job_on, m = live_match();
     if (G.job_on && !G.in_story && G.diff == D_SCHWER) show_own = ghost = 0;
-    put_str(put_str(put_str(put_str(t, MACH[G.mach].name), " ("), G.mach == M_OSC1 && p[P_DRONE] ? "KLOPFER" : MACH[G.mach].en), ")");
+    put_str(put_str(put_str(put_str(t, MACH[G.mach].name), " ("), MACH[G.mach].en), ")");
     if (G.mach == M_OSC1 && p[P_DRONE]) put_str(t, "DER KLOPFER");
+    if (m >= 0) put_str(t, MACH[G.mach].name);
     draw_top(t, C_WHT);
+    if (m >= 0) {
+        int k;
+        for (k = 0; k < 3; k++) text(GW - 20 + k * 6, 1, T_STAR, k < m ? C_YEL : C_DGRY, 1);
+    }
     draw_band(p, 10);
-    draw_status(44);
-    draw_scope(53, 28, show_own, ghost);
+    draw_scope(23, 61, show_own, ghost);
+    draw_status(74);
     if (G.kb_oct) {
         char o[8] = "OCT";
         o[3] = G.kb_oct > 0 ? '+' : '-'; o[4] = (char)('0' + (G.kb_oct > 0 ? G.kb_oct : -G.kb_oct)); o[5] = 0;
-        text(GW - 32, 73, o, C_ORG, 1);
+        text(GW - 32, 64, o, C_ORG, 1);
     }
-    draw_knobs(p, 82);
+    draw_knobs(p, 84);
     if (G.dlg_on) draw_dialog(60);
     if (G.confirm_home) { round_box(10, 40, 100, 20, C_RED, C_WHT); text_c(60, 47, "HOME = ZURÜCK", C_WHT, 1); }
 }

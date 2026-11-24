@@ -107,9 +107,9 @@ static int job(void (*build)(void), const char *name)
     wait_ms(200);
     return st;
 }
-static void b_wecker(void) { turn(FAB_E_K1, 20); }
-static void b_nebel(void) { turn(FAB_E_K1, 39); }
-static void b_pfeife(void) { turn(FAB_E_K1, 60); }
+static void b_wecker(void) { turn(FAB_E_K1, 41); }
+static void b_nebel(void) { turn(FAB_E_K1, 78); }
+static void b_pfeife(void) { turn(FAB_E_K1, 120); }
 static void steps(int track_black, const int *on, int n)
 {
     int i;
@@ -146,21 +146,21 @@ int main(int argc, char **argv)
     talk();
     shot("klopfer");
     EXPECT(FAB_Q_PARAM + P_HZ, 0);
-    turn(FAB_E_K1, 7);                    /* 1 Hz */
+    turn(FAB_E_K1, 12);                   /* 1 Hz */
     wait_ms(1500);
     shot("klopf-1hz");
     talk();
-    turn(FAB_E_K1, 18);                   /* 9 Hz */
+    turn(FAB_E_K1, 38);                   /* 10 Hz */
     wait_ms(1000);
     shot("klopf-9hz");
     talk();
-    turn(FAB_E_K1, 9);                    /* 23 Hz: ein Ton */
+    turn(FAB_E_K1, 15);                   /* 25 Hz: ein Ton */
     talk();
-    turn(FAB_E_K1, 25);                   /* hoch */
+    turn(FAB_E_K1, 48);                   /* 440 Hz */
     wait_ms(500);
     shot("hoher-ton");
     talk();
-    turn(FAB_E_K1, -20);                  /* tief */
+    turn(FAB_E_K1, -35);                  /* 55 Hz */
     talk();
     key(10, 300);
     talk();
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
     tap(FAB_B_SEL); talk();
     /* Marsch: Trommel 1 und 9, Klatsch 5 und 13, Tempo 110 */
     { static const int K[2] = {4, 12}; steps(0, K, 2); }
-    turn(FAB_E_K2, 6);
+    turn(FAB_E_K2, 6);                    /* Tempo: 2 BPM pro Raste */
     wait_ms(300);
     shot("marsch");
     tap(FAB_B_REC);

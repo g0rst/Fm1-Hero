@@ -67,7 +67,8 @@ static void check_content(void)
                 && text_len(o->t) > 20) FAIL("Kapitel %d: Anweisung zu lang: %s", c + 1, o->t);
             if (o->op == O_WAIT) {
                 if (PARAM_CH[o->a] > c + 1) FAIL("Kapitel %d wartet auf Regler %d aus Kapitel %d", c + 1, o->a, PARAM_CH[o->a]);
-                if ((o->b == CMP_GE || o->b == CMP_EQ) && o->c > P_MAX[o->a]) FAIL("Kapitel %d: Wert %d unerreichbar", c + 1, o->c);
+                if ((o->b == CMP_GE || o->b == CMP_EQ || o->b == CMP_NEAR) && o->c > P_MAX[o->a]) FAIL("Kapitel %d: Wert %d unerreichbar", c + 1, o->c);
+                if (o->b == CMP_GE || o->b == CMP_LE || o->b == CMP_FAR) FAIL("Kapitel %d: ungenaues Ziel \"%s\"", c + 1, o->t);
             }
             if (o->op == O_JOB && JOBS[o->a].ch != c + 1) FAIL("Auftrag %d steht in Kapitel %d, gehört zu %d", o->a, c + 1, JOBS[o->a].ch);
         }
@@ -100,6 +101,22 @@ static void check_content(void)
             st1 = compare(tgt_patch, cp, &w);
             if (st1 != 3) FAIL("%s: genau nachgebaut nur %d Sterne", jb->who, st1);
             if (st0 == 3) FAIL("%s: schon am Anfang gelöst", jb->who);
+            /* streng: jeder Regler, der zählt, 20 daneben -> durchgefallen; 4 daneben -> noch 3 Sterne */
+            for (s = jb->set; s[0] != END_; s += 2) {
+                int p = s[0], d;
+                if (categorical(p) || p == P_DRONE || !relevant(p, tgt_patch, tgt_patch)) continue;
+                for (d = -1; d <= 1; d += 2) {
+                    int far = tgt_patch[p] + d * (p == P_HZ ? 8 : 20), near = tgt_patch[p] + d * (p == P_HZ ? 2 : 4);
+                    if (far >= 0 && far <= 127) {
+                        memcpy(cp, tgt_patch, sizeof cp); cp[p] = (uint8_t)far;
+                        if (compare(tgt_patch, cp, &w) != 0) FAIL("%s: Regler %d um %d daneben besteht noch", jb->who, p, far - tgt_patch[p]);
+                    }
+                    if (near >= 0 && near <= 127) {
+                        memcpy(cp, tgt_patch, sizeof cp); cp[p] = (uint8_t)near;
+                        if (compare(tgt_patch, cp, &w) != 3) FAIL("%s: Regler %d knapp daneben keine 3 Sterne", jb->who, p);
+                    }
+                }
+            }
             /* über die Regler erreichbar: Schritte von 2 ab P_INIT */
         }
     }
@@ -133,7 +150,7 @@ static int robot(void)
             const op_t *o = &CHAPTERS[G.ch - 1][G.pc];
             switch (o->op) {
             case O_WAIT:
-                if (o->b == CMP_GE || o->b == CMP_EQ) bench[o->a] = o->c;
+                if (o->b == CMP_GE || o->b == CMP_EQ || o->b == CMP_NEAR) bench[o->a] = o->c;
                 else if (o->b == CMP_LE) bench[o->a] = o->c;
                 else bench[o->a] = (uint8_t)(P_INIT[o->a] + o->c <= P_MAX[o->a] ? P_INIT[o->a] + o->c : P_INIT[o->a] - o->c);
                 wt(50);

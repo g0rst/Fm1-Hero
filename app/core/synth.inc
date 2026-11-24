@@ -363,16 +363,19 @@ static uint16_t comb_i[4], ap_i[2];
 static float comb_lp[4], dly_lp, dly_time_s = 0.3f, dly_time_t = 0.3f, master_dc_x, master_dc_y, master_dc_xr, master_dc_yr;
 
 /* das Oszi: was die gewählte Stimme gerade macht */
-#define SCOPE_N 1024
+#define SCOPE_N 4096                    /* 93 ms: zwei Schwingungen auch beim tiefsten Ton (22 Hz) */
 static float scope_buf[SCOPE_N];
 static volatile uint32_t scope_w;
 static volatile uint8_t scope_v = V_BENCH;
 /* das Zeitbild: 120 Abschnitte zu 10 ms, ab dem Anschlag (der Klopfer: fortlaufend) */
+/* Zeitbild: die Lautstärke in Abschnitten (10 ms, beim Wackler und Echo 20 ms), ab dem Anschlag und weiter, solange
+ * der Ton klingt, auch nach dem Loslassen (dann sieht man das Tor zugehen); die Anzeige rollt mit */
 #define ZEIT_N 120
-#define ZEIT_BIN 441
-static volatile int8_t zeit_mx[ZEIT_N];
-static volatile uint8_t zeit_pos;
-static uint32_t zeit_cnt;
+#define ZEIT_R 256
+static volatile uint8_t zeit_ring[ZEIT_R];
+static volatile uint32_t zeit_count;
+static volatile uint16_t zeit_bin = 441;
+static uint32_t zeit_cnt, zeit_tail;
 static float zeit_peak;
 static volatile uint8_t zeit_restart;
 
@@ -544,18 +547,18 @@ static void fab_render_core(int32_t *lr, uint32_t n, uint32_t gain_q12)
             if (V[scope_v].s1 == E_IDLE) y = 0.0f;
             if (zeit_restart) {
                 zeit_restart = 0;
-                zeit_pos = 0; zeit_cnt = 0; zeit_peak = 0.0f;
-                for (c = 0; c < ZEIT_N; c++) zeit_mx[c] = 0;
+                zeit_count = 0; zeit_cnt = 0; zeit_peak = 0.0f; zeit_tail = 30;
             }
             if (fabsf_(y) > zeit_peak) zeit_peak = fabsf_(y);
-            if (++zeit_cnt >= ZEIT_BIN) {
+            if (++zeit_cnt >= zeit_bin) {
                 float pk = zeit_peak * 300.0f;
                 zeit_cnt = 0;
                 if (pk > 127.0f) pk = 127.0f;
-                if (zeit_pos < ZEIT_N) {
-                    zeit_mx[zeit_pos] = (int8_t)pk;
-                    zeit_pos++;
-                    if (V[scope_v].p[P_DRONE] && zeit_pos >= ZEIT_N) zeit_pos = 0;   /* der Klopfer läuft im Kreis */
+                if (V[scope_v].s1 != E_IDLE) zeit_tail = 30;   /* nach dem Verklingen noch 30 Abschnitte Stille */
+                if (zeit_tail) {
+                    zeit_tail--;
+                    zeit_ring[zeit_count & (ZEIT_R - 1)] = (uint8_t)pk;
+                    zeit_count = zeit_count + 1;
                 }
                 zeit_peak = 0.0f;
             }
@@ -616,12 +619,12 @@ static void fab_render_core(int32_t *lr, uint32_t n, uint32_t gain_q12)
 
 /* Ein Klang einmal ohne Lautsprecher: sein Oszibild (eine Schwingung bei der Note, 120 Punkte) und sein Zeitbild
  * (Note 0,6 s gehalten, dann losgelassen; 120 Abschnitte zu 10 ms). In der Hauptschleife, einmal pro Auftrag. */
-static void syn_offline(const uint8_t *p, int note, int8_t *wave_out, int8_t *zeit_out)
+static void syn_offline(const uint8_t *p, int note, int8_t *wave_out, int8_t *zeit_out, uint32_t bin)
 {
     static voice_t tv;
-    uint32_t i, hold = (uint32_t)(0.6f * FAB_SR), total = ZEIT_N * ZEIT_BIN;
+    uint32_t i, hold = 60u * bin, total = ZEIT_N * bin;   /* die halbe Zeit gehalten, dann losgelassen */
     float pk = 0.0f;
-    float buf[256];
+    static float buf[4096];
     uint32_t bw = 0;
     tv.ns = 0x51ED27u;
     voice_reset(&tv, p);
@@ -631,26 +634,26 @@ static void syn_offline(const uint8_t *p, int note, int8_t *wave_out, int8_t *ze
         if (i == hold && !p[P_DRONE]) v_off(&tv);
         y = v_tick(&tv);
         if (fabsf_(y) > pk) pk = fabsf_(y);
-        if (i % ZEIT_BIN == ZEIT_BIN - 1) {
+        if (i % bin == bin - 1) {
             float q = pk * 300.0f;
-            zeit_out[i / ZEIT_BIN] = (int8_t)(q > 127.0f ? 127.0f : q);
+            zeit_out[i / bin] = (int8_t)(q > 127.0f ? 127.0f : q);
             pk = 0.0f;
         }
-        if (i >= 4410u && bw < 256u)            /* nach 100 ms, wenn sich der Anschlag gelegt hat */
+        if (i >= 4410u && bw < 4096u)           /* nach 100 ms, wenn sich der Anschlag gelegt hat */
             buf[bw++] = y;
     }
     /* eine Schwingung aus dem Puffer: ab einem Nulldurchgang nach oben */
     {
         float f = tv.inc1 > 0.0f ? tv.inc1 : 0.01f, per = 1.0f / f, span;
         uint32_t s0 = 0, j;
-        for (j = 1; j < 128; j++)
-            if (buf[j - 1] <= 0.0f && buf[j] > 0.0f) { s0 = j; break; }
-        span = per * 2.0f;
-        if (span > 120.0f) span = 120.0f;
+        span = per * 2.0f;                      /* zwei ganze Schwingungen */
+        if (span > 2000.0f) span = 2000.0f;
         if (span < 30.0f) span = 30.0f;
+        for (j = 1; j < 2000; j++)
+            if (buf[j - 1] <= 0.0f && buf[j] > 0.0f) { s0 = j; break; }
         for (j = 0; j < 120; j++) {
             uint32_t idx = s0 + (uint32_t)((float)j * span / 120.0f);
-            float y = idx < 256 ? buf[idx] * 300.0f : 0.0f;
+            float y = idx < 4096 ? buf[idx] * 300.0f : 0.0f;
             wave_out[j] = (int8_t)(y > 127.0f ? 127 : y < -127.0f ? -127 : y);
         }
     }

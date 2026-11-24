@@ -55,6 +55,12 @@ kopieren.
   den Pixel-Look. Die Werkstatt ist ein Bild: oben die Maschinen als Leiste in der Reihenfolge des Klangs (Strom bis
   Lautsprecher, dann die Steuer-Maschinen), darunter groß das Oszilloskop mit der Welle (WELLE, mit der Frequenz in
   Hz) oder der Lautstärke über die Zeit (ZEIT), dazu blassrosa die Welle der Kundschaft; unten die vier Regler.
+  Das Oszi zeigt immer etwas: Ohne Taste eine **Vorschau** des eigenen Klangs (neu berechnet, sobald ein Regler kurz
+  stillsteht), mit Taste das echte Signal. Die Welle zeigt immer zwei ganze Schwingungen, auf volle Höhe skaliert.
+  Das Zeitbild läuft mit, solange der Ton klingt, auch nach dem Loslassen: Man sieht das Tor aufgehen und wieder
+  zugehen; ein weißer Strich zeigt „jetzt“. Die Maschine wählt das passende Bild selbst (Tor, Hüllkurven, Echo:
+  ZEIT; Wackler: ZEIT mit 2 Sekunden, bei Ziel „Ton“ WELLE; sonst WELLE), SEL schaltet um. Das Tor in der Leiste
+  füllt sich mit der Lautstärke.
 
 | Kapitel | Maschine | Lernziel |
 | --- | --- | --- |

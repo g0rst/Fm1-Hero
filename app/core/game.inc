@@ -135,7 +135,10 @@ static struct {
     /* Auftrag */
     int job, job_on, free, diff, tries, last_stars, worst;
     uint32_t tgt_off_at;
-    int8_t tgt_wave[120], tgt_zeit[120];
+    int8_t tgt_wave[120], tgt_zeit[120], own_wave[120], own_zeit[120];
+    uint32_t pv_hash, pv_t, live_until;
+    uint16_t pv_bin, tgt_bin;
+    uint8_t pv_done;
     /* Dialog */
     const char *dlg, *dlg_page, *dlg_next;
     int dlg_on, dlg_shown, dlg_total, dlg_who, dlg_pose, dlg_fact;
@@ -432,6 +435,7 @@ static int compare(const uint8_t *t, const uint8_t *b, int *worst)
     return st;
 }
 static int param_mach(int p, int *knob);
+static void set_mach(int m);
 static const char *const MACH_SHORT[NM];
 static const char *hint_for(int p)
 {
@@ -494,7 +498,9 @@ static void job_build(void)
         if (compare(tgt_patch, bench, &w) == 3 && param_ok(P_W1))
             bench[P_W1] = tgt_patch[P_W1] == W_SAW ? W_SQR : W_SAW;
     }
-    syn_offline(tgt_patch, j->note ? j->note : 60, G.tgt_wave, G.tgt_zeit);
+    syn_offline(tgt_patch, j->note ? j->note : 60, G.tgt_wave, G.tgt_zeit, 441);
+    G.tgt_bin = 441;
+    G.pv_hash = 0;
 }
 static void tgt_play(void)
 {
@@ -565,7 +571,7 @@ static void story_next(void)
         case O_HAPPY: say(o->t, 0, 1); sfx(SFX_STAR, 84); return;
         case O_FACT: say(o->t, 0, 0); G.dlg_fact = 1; return;
         case O_UNLOCK: G.new_mach = o->a; G.new_t0 = G.now; G.mach = o->a; sfx(SFX_STAR, 79); break;
-        case O_SEL: G.mach = o->a; break;
+        case O_SEL: set_mach(o->a); break;
         case O_SET: bench[o->a] = o->b; break;
         case O_RESET: make_patch(bench, 0); break;
         case O_VIEW: G.view = o->a; break;
@@ -720,6 +726,21 @@ static void play_keys(int voice)
     if (G.bpress >> FAB_B_OCTUP & 1u && G.kb_oct < 2) { G.kb_oct++; sfx(SFX_BLIP, 84); }
     if (G.bpress >> FAB_B_OCTDN & 1u && G.kb_oct > -2) { G.kb_oct--; sfx(SFX_BLIP, 72); }
 }
+/* das passende Bild zur Maschine: Klangfarbe als WELLE, Lautstärke und Bewegung als ZEIT */
+static int auto_view(int m)
+{
+    const uint8_t *p = edit_patch();
+    if (m == M_OSC1 && p[P_DRONE]) return p[P_HZ] < 64;
+    if (m == M_VCA || m == M_ENV1 || m == M_ENV2 || m == M_FX) return 1;
+    if (m == M_LFO) return p[P_LTGT] != L_PITCH;
+    return 0;
+}
+static void set_mach(int m)
+{
+    G.live_until = 0;                   /* das Bild zeigt gleich die Vorschau der neuen Maschine */
+    G.mach = m;
+    G.view = auto_view(m);
+}
 static void select_mach(int dir)
 {
     int i, idx = 0, n = 0;
@@ -727,7 +748,7 @@ static void select_mach(int dir)
     for (i = 0; i < NM; i++) if (mach_ok(SEL_ORDER[i])) list[n++] = SEL_ORDER[i];
     for (i = 0; i < n; i++) if (list[i] == G.mach) idx = i;
     idx = (idx + dir + n * 4) % n;
-    G.mach = list[idx];
+    set_mach(list[idx]);
     sfx(SFX_BLIP, 76 + idx * 2);
 }
 static void fabrik_input(int voice)
@@ -737,11 +758,11 @@ static void fabrik_input(int voice)
     if (G.enc[FAB_E_SELECT]) select_mach(G.enc[FAB_E_SELECT] > 0 ? 1 : -1);
     if (G.bpress >> FAB_B_EDIT & 1u) select_mach(1);
     if (G.bpress >> FAB_B_ENV & 1u && mach_ok(M_ENV1)) {
-        G.mach = G.mach == M_ENV1 && mach_ok(M_ENV2) ? M_ENV2 : M_ENV1;
+        set_mach(G.mach == M_ENV1 && mach_ok(M_ENV2) ? M_ENV2 : M_ENV1);
         sfx(SFX_BLIP, 80);
     }
-    if (G.bpress >> FAB_B_LFO & 1u && mach_ok(M_LFO)) { G.mach = M_LFO; sfx(SFX_BLIP, 80); }
-    if (G.bpress >> FAB_B_FX & 1u && mach_ok(M_FX)) { G.mach = M_FX; sfx(SFX_BLIP, 80); }
+    if (G.bpress >> FAB_B_LFO & 1u && mach_ok(M_LFO)) { set_mach(M_LFO); sfx(SFX_BLIP, 80); }
+    if (G.bpress >> FAB_B_FX & 1u && mach_ok(M_FX)) { set_mach(M_FX); sfx(SFX_BLIP, 80); }
     for (i = 0; i < 4; i++) {
         int prm = knob_param(G.mach, i);
         if (prm >= 0 && param_ok(prm)) turn(p, prm, G.enc[FAB_E_K1 + i]);
@@ -840,6 +861,13 @@ static void draw_band(const uint8_t *p, int y)
         int ec = sel ? C_YEL : isnew && blink(4) ? C_WHT : i < n ? C_DGRY : C_LAV;
         if (i == n && nm) { rect(x + 1, y + 2, 1, 9, C_DGRY); x += 4; }
         round_box(x, y, w, 13, sel ? C_PLUM : C_NAVY, ec);
+        if (m == M_VCA || m == M_ENV1) {   /* das Tor geht mit dem Ton auf und wieder zu */
+            float lv = V[scope_v].e1 * (m == M_VCA ? (float)p[P_VOL] * (1.0f / 127.0f) : 1.0f);
+            int hh = (int)(lv * 11.0f + 0.5f);
+            if (V[scope_v].s1 == E_IDLE) hh = 0;
+            if (hh > 11) hh = 11;
+            if (hh) rect(x + 1, y + 12 - hh, w - 2, hh, C_DGRN);
+        }
         icon(m == M_OSC1 && p[P_DRONE] ? IC_KLOPF : MACH[m].ic, 11, 9, x + 1, y + 2, sel ? C_WHT : C_LGRY);
         if (m == M_ENV2) text(x + 8, y + 5, "2", C_YEL, 1);
         if (active && i < n && (G.fr / 4u) % (uint32_t)n == (uint32_t)i) px(x + w / 2, y + 12, C_GRN);   /* der Ton läuft durch */
@@ -847,10 +875,41 @@ static void draw_band(const uint8_t *p, int y)
     }
     if (ends) icon(IC_SPK, 11, 9, x + 1, y + 2, active ? C_WHT : C_LGRY);
 }
+/* Vorschau: der eigene Klang, ohne Taste berechnet, kurz nachdem sich ein Regler bewegt hat */
+static uint16_t view_bin(void) { return (uint16_t)(G.mach == M_LFO || G.mach == M_FX ? 882 : 441); }
+static void preview_update(void)
+{
+    const uint8_t *p = edit_patch();
+    uint32_t h = 2166136261u;
+    int i, note = G.job_on && JOBS[G.job].note ? JOBS[G.job].note : 60;
+    uint16_t bin = view_bin();
+    for (i = 0; i < NP; i++) h = (h ^ p[i]) * 16777619u;
+    h = (h ^ bin) * 16777619u;
+    h = (h ^ (uint32_t)note) * 16777619u;
+    if (bin != zeit_bin) { zeit_bin = bin; zeit_restart = 1; }
+    if (h != G.pv_hash) { G.pv_hash = h; G.pv_t = G.now; G.pv_done = 0; }
+    if (!G.pv_done && G.now - G.pv_t > 180u) {   /* erst, wenn der Regler kurz still steht */
+        syn_offline(p, note, G.own_wave, G.own_zeit, bin);
+        G.pv_bin = bin;
+        G.pv_done = 1;
+        if (G.job_on && JOBS[G.job].kind == JK_SOUND && G.tgt_bin != bin) {
+            syn_offline(tgt_patch, note, G.tgt_wave, G.tgt_zeit, bin);
+            G.tgt_bin = bin;
+        }
+    }
+    if (V[scope_v].s1 != E_IDLE) G.live_until = G.now + 1500u;
+}
+static int peak8(const int8_t *a, int n)
+{
+    int i, m = 8;
+    for (i = 0; i < n; i++) { int v = a[i] < 0 ? -a[i] : a[i]; if (v > m) m = v; }
+    return m;
+}
 static void draw_scope(int y, int h, int show_own, int ghost)
 {
     int i, cy = y + h / 2;
-    int amp = h / 2 - 3;
+    int amp = h / 2 - 4;
+    int live = V[scope_v].s1 != E_IDLE || (int32_t)(G.live_until - G.now) > 0;
     round_box(0, y, GW, h, C_BLK, C_DGRN);
     for (i = 4; i < GW - 4; i += 4) { px(i, cy, C_DGRN); px(i, cy - amp, C_NAVY); px(i, cy + amp, C_NAVY); }
     for (i = 30; i < GW; i += 30) { int yy; for (yy = y + 3; yy < y + h - 3; yy += 4) px(i, yy, C_NAVY); }
@@ -859,56 +918,81 @@ static void draw_scope(int y, int h, int show_own, int ghost)
         return;
     }
     if (G.view == 0) {
-        /* Oszi: ab einem Nulldurchgang nach oben, etwa zwei Schwingungen breit */
+        /* Welle: jede Spur auf volle Höhe, damit man die Form auch bei leisen Tönen sieht */
         if (ghost) {
-            int prev = 0;
+            int prev = 0, pk = peak8(G.tgt_wave, 120);
             for (i = 0; i < 116; i++) {
-                int yy = cy - G.tgt_wave[i] * amp / 128;
+                int yy = cy - G.tgt_wave[i] * amp / pk;
                 if (i && (i & 1)) line(2 + i - 1, prev, 2 + i, yy, C_PNK);
                 prev = yy;
             }
         }
-        if (show_own) {
-            uint32_t w = scope_w, st = w - 600u, s;
-            float inc = V[scope_v].inc1, span;
+        if (show_own && V[scope_v].s1 != E_IDLE) {    /* was gerade klingt */
+            uint32_t w = scope_w, st = w - 4000u, s;
+            float inc = V[scope_v].inc1, span, pk = 0.02f;
             int prev = cy;
-            for (s = st; s < w - 300u; s++)
-                if (scope_buf[(s - 1u) & (SCOPE_N - 1)] <= 0.0f && scope_buf[s & (SCOPE_N - 1)] > 0.0f) { st = s; break; }
-            span = inc > 0.0f ? 2.0f / inc : 120.0f;
-            if (span > 280.0f) span = 280.0f;
+            int found = 0;
+            span = inc > 0.0f ? 2.0f / inc : 120.0f;   /* zwei ganze Schwingungen */
+            if (span > 3800.0f) span = 3800.0f;
             if (span < 30.0f) span = 30.0f;
+            for (s = w - (uint32_t)span - 20u; s != st; s--)   /* der letzte Nulldurchgang nach oben, der passt */
+                if (scope_buf[(s - 1u) & (SCOPE_N - 1)] <= 0.0f && scope_buf[s & (SCOPE_N - 1)] > 0.0f) { found = 1; break; }
+            st = found ? s : w - (uint32_t)span - 10u;
             for (i = 0; i < 116; i++) {
-                float v = scope_buf[(st + (uint32_t)((float)i * span / 116.0f)) & (SCOPE_N - 1)] * 300.0f;
-                int yy;
-                if (V[scope_v].s1 == E_IDLE) v = 0.0f;
-                if (v > 127.0f) v = 127.0f;
-                if (v < -127.0f) v = -127.0f;
-                yy = cy - (int)v * amp / 128;
+                float v = scope_buf[(st + (uint32_t)((float)i * span / 116.0f)) & (SCOPE_N - 1)];
+                if (fabsf_(v) > pk) pk = fabsf_(v);
+            }
+            for (i = 0; i < 116; i++) {
+                float v = scope_buf[(st + (uint32_t)((float)i * span / 116.0f)) & (SCOPE_N - 1)] / pk;
+                int yy = cy - (int)(v * (float)amp);
                 if (i) { line(2 + i - 1, prev, 2 + i, yy, C_GRN); px(2 + i, yy + 1, C_DGRN); }
                 prev = yy;
             }
-            if (V[scope_v].s1 != E_IDLE && inc > 0.0f) {   /* die Frequenz, die gerade klingt */
+            if (inc > 0.0f) {
                 char b[12];
-                int hz = (int)(inc * FAB_SR + 0.5f);
-                put_str(put_int(b, hz), " HZ");
+                put_str(put_int(b, (int)(inc * FAB_SR + 0.5f)), " HZ");
                 text(36, y + 2, b, C_GRN, 1);
             }
+        } else if (show_own && G.pv_done) {           /* sonst: die Vorschau */
+            int prev = cy, pk = peak8(G.own_wave, 120);
+            for (i = 0; i < 116; i++) {
+                int yy = cy - G.own_wave[i] * amp / pk;
+                if (i) line(2 + i - 1, prev, 2 + i, yy, C_GRN);
+                prev = yy;
+            }
+            text(36, y + 2, "VORSCHAU", C_DGRN, 1);
         }
         text(3, y + 2, "WELLE", C_DGRN, 1);
     } else {
-        /* Zeitbild: Lautstärke über 1,2 Sekunden */
-        int base = y + h - 3;
-        for (i = 0; i < ZEIT_N && i < 116; i++) {
-            if (ghost) {
-                int g = G.tgt_zeit[i] * (h - 8) / 128;
+        /* Zeit: Lautstärke von links nach rechts; der eigene Ton rollt mit, solange er klingt */
+        int base = y + h - 3, top = h - 9, secs = G.pv_bin == 882 ? 2 : 1;
+        for (i = 0; i <= 116; i += (secs == 1 ? 29 : 29)) { int yy; for (yy = base; yy > base - 3; yy--) px(2 + i, yy, C_DGRN); }
+        if (ghost)
+            for (i = 0; i < 116; i++) {
+                int g = G.tgt_zeit[i] * top / 128;
                 if (g) { px(2 + i, base - g, C_PNK); px(2 + i, base - g + 1, C_PNK); }
             }
-            if (show_own && i < zeit_pos) {
-                int g = zeit_mx[i] * (h - 8) / 128;
-                if (g) rect(2 + i, base - g, 1, g, C_GRN);
+        if (show_own && live && zeit_count) {
+            /* ab dem Anschlag: bis 116 Abschnitte 1:1, bis 232 zusammengeschoben (Anfang bleibt sichtbar), dann rollend */
+            uint32_t n = zeit_count, sc = n > 116u ? 2u : 1u, st = n > 232u ? n - 232u : 0u, k;
+            int xx = 2;
+            for (k = st; k < n; k += sc, xx++) {
+                int a = zeit_ring[k & (ZEIT_R - 1)], b2 = k + 1 < n && sc == 2 ? zeit_ring[(k + 1) & (ZEIT_R - 1)] : 0;
+                int g = (a > b2 ? a : b2) * top / 128;
+                if (g) rect(xx, base - g, 1, g, C_GRN);
             }
+            if (V[scope_v].s1 != E_IDLE) rect(xx, y + 3, 1, h - 6, C_WHT);   /* jetzt */
+            if (sc == 2) text(GW - 20, base - 9, secs == 2 ? "4 S" : "2 S", C_DGRN, 1);
+        } else if (show_own && G.pv_done) {
+            for (i = 0; i < 116; i++) {
+                int g = G.own_zeit[i] * top / 128;
+                if (g) rect(2 + i, base - g, 1, g, C_DGRN);
+                if (g) px(2 + i, base - g, C_GRN);
+            }
+            text(36, y + 2, "VORSCHAU", C_DGRN, 1);
         }
         text(3, y + 2, "ZEIT", C_DGRN, 1);
+        if (!(show_own && live && zeit_count > 116u)) text(GW - 20, base - 9, secs == 2 ? "2 S" : "1 S", C_DGRN, 1);
     }
     if (ghost) text(GW - 32, y + 2, "KUNDE", C_PNK, 1);
 }
@@ -946,6 +1030,7 @@ static void draw_work(void)
     char t[32];
     const uint8_t *p = edit_patch();
     int show_own = 1, ghost = G.job_on, m = live_match();
+    preview_update();
     if (G.job_on && !G.in_story && G.diff == D_SCHWER) show_own = ghost = 0;
     put_str(put_str(put_str(put_str(t, MACH[G.mach].name), " ("), MACH[G.mach].en), ")");
     if (G.mach == M_OSC1 && p[P_DRONE]) put_str(t, "DER KLOPFER");
@@ -1613,7 +1698,7 @@ static void input_live(void)
     if (G.bpress >> FAB_B_SEQ & 1u || (G.bpress >> FAB_B_EDIT & 1u && !G.live_fab)) {
         G.live_fab ^= 1;
         G.held_step = -1;
-        if (G.live_fab) { G.mach = M_OSC1; }
+        if (G.live_fab) set_mach(M_OSC1);
         return;
     }
     if (G.bpress >> FAB_B_SAVE & 1u) { save_mask |= (uint8_t)(1u << G.slot); fab_message("GESPEICHERT", ""); }

@@ -15,5 +15,7 @@ page, wasm, dest = sys.argv[1:]
 html = open(page, encoding="utf-8").read()
 assert html.count("@@WASM@@") == 1
 open(dest, "w", encoding="utf-8").write(html.replace("@@WASM@@", base64.b64encode(open(wasm, "rb").read()).decode()))
+import os, shutil
+shutil.copyfile(dest, os.path.join(os.path.dirname(dest), "testseite.html"))   # dieselbe Seite, wie bei ro:MINImal
 print(f"{dest}: {len(html)} Bytes Seite, {len(open(wasm, 'rb').read())} Bytes WebAssembly")
 PY

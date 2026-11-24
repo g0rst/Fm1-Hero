@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "id": "tonfabrik",
+  "name": "Tonfabrik",
+  "author": "g0rst",
+  "license": "GPL-3.0-only",
+  "tagline": "a game that teaches kids how synthesizers work",
+  "description": "Die Tonfabrik: a story game for children from 7. Inherit a sound factory, learn oscillator, VCA, envelope, filter, LFO, echo, sequencer and FM from Herr Vogl the woodpecker, rebuild sounds for customers, then play your own music in live mode.",
+  "tags": ["synth", "sequencer"],
+  "install": "https://github.com/g0rst/Fm1-Hero",
+  "site": "https://g0rst.github.io/Fm1-Hero/",
+  "source": "https://github.com/g0rst/Fm1-Hero",
+  "screenshot": "docs/screen.png",
+  "hardware": {
+    "models": ["FM-1"],
+    "flash": ["856014", "B36014"],
+    "features": ["screen-reader"]
+  },
+  "credits": "Built on fm1-base and felucca-bsp (MPL-2.0)."
+}

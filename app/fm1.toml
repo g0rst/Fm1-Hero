@@ -1,0 +1,22 @@
+# Die Tonfabrik: Build-Einstellungen für fm1-base (base/tools/build.py)
+name = "TONFABRIK"             # benennt die Dateien des Builds: app/build/tonfabrik.fwsc
+title = "Tonfabrik"
+id_prefix = "FM-1_48"          # Paket-Identität: dev FM-1_4800, Releases FM-1_48XXYYZZ
+usb_manufacturer = "g0rst"
+usb_product = "Tonfabrik FM-1"
+o2 = ["core/fab.c"]            # das Spiel: eine eigene Einheit mit -O2
+o2_cflags = ["-DFAB_FM1_POOL"] # Echo und Hall im RAM-Bereich .pool
+words = "words.tsv"
+ble = false                    # kein Funk: nichts von JieLi wird gelinkt
+usb_audio_in = false           # kein USB-Audio: über USB nur MIDI
+usb_audio_out = false
+tagline = "a game that teaches kids how synthesizers work"
+repo = "https://github.com/g0rst/Fm1-Hero"
+licence = "GPL-3.0-only"
+credits = "Built on fm1-base and felucca-bsp (MPL-2.0)."
+author = "g0rst"
+description = "Die Tonfabrik: a story game for children from 7. Inherit a sound factory, learn oscillator, VCA, envelope, filter, LFO, echo, sequencer and FM from Herr Vogl the woodpecker, rebuild sounds for customers, then play your own music in live mode."
+tags = ["synth", "sequencer"]
+install = "https://github.com/g0rst/Fm1-Hero"
+site = "https://g0rst.github.io/Fm1-Hero/"
+screenshot = "docs/screen.png"

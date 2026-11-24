@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Die Tonfabrik – Handbuch</title>
+<style>
+:root { --ink: #1d2b53; --soft: #5f574f; --accent: #ffa300; --paper: #fff1e8; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 24px 18px 60px; }
+h1 { font-size: 40px; margin: 0 0 4px; letter-spacing: .02em; }
+h1 span { color: var(--accent); }
+h2 { margin: 40px 0 10px; font-size: 24px; border-bottom: 3px solid var(--accent); display: inline-block; }
+p, li { max-width: 68ch; }
+.lead { font-size: 19px; color: var(--soft); }
+figure { margin: 0; }
+img.px { image-rendering: pixelated; width: 240px; height: 240px; border-radius: 6px; background: #000; }
+.row { display: flex; flex-wrap: wrap; gap: 14px; margin: 14px 0; }
+.row figcaption { font-size: 14px; color: var(--soft); max-width: 240px; }
+table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid #e3d2c3; vertical-align: top; }
+th { background: #ffe5cc; }
+.box { background: #fff; border-left: 5px solid var(--accent); padding: 12px 16px; border-radius: 4px; margin: 16px 0; }
+.warn { border-left-color: #ff004d; }
+kbd { background: #1d2b53; color: #fff; border-radius: 4px; padding: 1px 6px; font: 600 14px/1.4 system-ui, sans-serif; }
+a { color: #7e2553; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Die <span>Ton</span>fabrik</h1>
+<p class="lead">Ein Lernspiel über Synthesizer für Kinder ab 7, auf dem M-VAVE FM-1. Handbuch für Eltern, Lehrkräfte und
+alle, die mitspielen.</p>
+<p><a href="index.html">Im Browser ausprobieren</a> · <a href="https://github.com/g0rst/Fm1-Hero">Quellcode</a></p>
+
+<div class="row">
+  <figure><img class="px" src="img/titel.png" alt="Titelbild: die Tonfabrik mit Herrn Vogl"><figcaption>Der Titel</figcaption></figure>
+  <figure><img class="px" src="img/vogl.png" alt="Herr Vogl spricht in einer Sprechblase"><figcaption>Herr Vogl, der Vorarbeiter</figcaption></figure>
+  <figure><img class="px" src="img/auftrag.png" alt="Werkstatt mit Fließband, Oszilloskop und vier Reglern"><figcaption>Die Werkstatt: Fließband, Oszi, vier Regler</figcaption></figure>
+</div>
+
+<h2>Worum es geht</h2>
+<p>Das Kind erbt die Tonfabrik von Onkel Otto. Dort werden Töne aus Strom gebaut. Jede Maschine ist ein Baustein eines
+echten Synthesizers, und sie stehen hintereinander am Fließband, so wie im Gerät das Signal von Baustein zu Baustein
+läuft: Strom, Schwinger, Filter, Tor, Lautsprecher. Darüber hängen die Steuer-Maschinen (Hüllkurve, Wackler) mit
+Kabeln an dem, was sie bewegen.</p>
+<p>Herr Vogl, ein Specht und Vorarbeiter, erklärt jede Maschine in kurzen Sätzen. Das Kind probiert sofort aus, was er
+sagt: Das Spiel wartet, bis der richtige Regler wirklich gedreht ist. Dann rufen Kundinnen und Kunden an, die einen
+bestimmten Ton brauchen. Man hört ihn sich an, baut ihn nach und liefert aus. Wer nach allen Kapiteln die
+Meisterprüfung schafft, bekommt eine Urkunde, löst im Auftrags-Modus selbständig immer neue Klangrätsel und macht im
+Live-Modus eigene Musik mit dem 16-Step-Sequencer.</p>
+
+<h2>Was das Kind lernt</h2>
+<table>
+<tr><th>Kapitel</th><th>Maschine</th><th>Lernziel</th><th>Aufträge</th></tr>
+<tr><td>1 Der Klopfer</td><td>Impulsgeber</td><td>Strom macht Stöße; ab etwa 20 Stößen pro Sekunde hört man einen Ton. Frequenz, Hertz, hoch und tief, Oktave = doppelt so schnell</td><td>Wecker, Nebelhorn, Pfeife; Minispiel „Hoch oder tief?“</td></tr>
+<tr><td>2 Die Wellen</td><td>Schwinger (OSC)</td><td>Sinus, Dreieck, Säge, Rechteck, Pulsbreite, Rauschen; Obertöne</td><td>Flöte, Videospielton, Sturm, Stimmgabel; „Welche Welle?“</td></tr>
+<tr><td>3 Das Tor</td><td>VCA</td><td>Taste = Tor auf; Lautstärke; Verzerrung macht neue Obertöne</td><td>leise Uhr, Rockband</td></tr>
+<tr><td>4 Die Hüllkurve</td><td>ENV</td><td>Start, Fall, Halten, Ende (A, D, S, R); warum ein Klavier ein Schlagzeug ist</td><td>Glocke, Orgel, Geigen, Xylophon; „Spiel mir nach!“</td></tr>
+<tr><td>5 Der Filter</td><td>VCF und Hüllkurve 2</td><td>Filter als Sieb für Obertöne, Resonanz, Filter-Hüllkurve, Typen</td><td>Kuh, Geisterbahn, Teddy, Disco-Bass</td></tr>
+<tr><td>6 Der Wackler</td><td>LFO</td><td>Vibrato, Tremolo, Wah, Formen</td><td>Feuerwehr, Piepmatz, Biene, Ufo</td></tr>
+<tr><td>7 Zwei Schwinger</td><td>OSC 2, Tonsprung</td><td>Mischen, Schwebung, Trommeln aus Sinus und Rauschen</td><td>Große Trommel der Blaskapelle, kleine Trommel, Sprung-Sound, Roboter</td></tr>
+<tr><td>8 Echo und Hall</td><td>FX</td><td>Schall: 343 m pro Sekunde, Echo, Hall, Fledermäuse</td><td>Höhle, Dom</td></tr>
+<tr><td>9 Der Takt</td><td>Sequencer</td><td>16 Schritte, 4/4-Takt, Tempo in BPM, Dur und Moll</td><td>Marsch, Schlaflied</td></tr>
+<tr><td>10 FM-Zauber</td><td>FM</td><td>Frequenzmodulation: der Trick, für den der FM-1 gebaut ist</td><td>Glockenspiel, E-Piano</td></tr>
+<tr><td>11 Meisterprüfung</td><td>alle</td><td>alles zusammen, Hilfe nur auf Nachfrage</td><td>Löwe, Münze, Meer, Rakete</td></tr>
+</table>
+
+<div class="row">
+  <figure><img class="px" src="img/klopfer.png" alt="Der Klopfer mit einem Hertz"><figcaption>Kapitel 1: 1 Hz, das Zeitbild zeigt einzelne Stöße. Die Tastenlichter blinken mit.</figcaption></figure>
+  <figure><img class="px" src="img/filter.png" alt="Werkstatt mit Filter"><figcaption>Kapitel 5: das Fließband wächst mit jeder Maschine</figcaption></figure>
+  <figure><img class="px" src="img/geliefert.png" alt="Drei Sterne für das Nebelhorn"><figcaption>Geliefert: bis zu drei Sterne</figcaption></figure>
+</div>
+
+<h2>Bedienung am FM-1</h2>
+<table>
+<tr><th>Taste oder Regler</th><th>Was sie tut</th></tr>
+<tr><td><kbd>SEL</kbd></td><td>weiter, auswählen. Herr Vogl spricht, bis SEL gedrückt wird (erster Druck: ganzer Text, zweiter: weiter). In der Werkstatt wechselt SEL das Bild zwischen WELLE und ZEIT.</td></tr>
+<tr><td><kbd>HOME</kbd></td><td>zurück. In der Werkstatt zweimal drücken, damit nichts aus Versehen verloren geht.</td></tr>
+<tr><td><kbd>SELECT</kbd></td><td>der große Drehregler: Maschine am Fließband wählen, in Menüs blättern</td></tr>
+<tr><td><kbd>KNOB1</kbd> bis <kbd>KNOB4</kbd></td><td>die vier Regler der gewählten Maschine; auf dem Bildschirm unten mit Namen, Zeiger und Wert</td></tr>
+<tr><td><kbd>ENV</kbd> <kbd>LFO</kbd> <kbd>FX</kbd> <kbd>EDIT</kbd></td><td>direkt zur Hüllkurve (zweimal: Hüllkurve 2), zum Wackler, zu Echo + Hall; EDIT: nächste Maschine</td></tr>
+<tr><td>Tasten, <kbd>OCT−</kbd> <kbd>OCT+</kbd></td><td>den eigenen Ton spielen, Oktave wechseln</td></tr>
+<tr><td><kbd>PLAY</kbd></td><td>beim Auftrag: den gewünschten Ton anhören; Sequencer: Start und Stopp</td></tr>
+<tr><td><kbd>REC</kbd></td><td>beim Auftrag: ausliefern; im Live-Modus: aufnehmen, was auf den Tasten gespielt wird</td></tr>
+<tr><td><kbd>GLO</kbd></td><td>Herr Vogl gibt einen Tipp (in der Geschichte und im Auftrags-Modus „leicht“)</td></tr>
+<tr><td><kbd>SEQ</kbd></td><td>die Schrittmaschine; im Live-Modus zwischen den Schritten und der Fabrik der Spur</td></tr>
+<tr><td><kbd>SAVE</kbd></td><td>im Live-Modus speichern. Auf dem Bildschirm „Wer spielt?“ 3 Sekunden halten: diesen Spielstand löschen</td></tr>
+<tr><td><kbd>PRESETS</kbd></td><td>im Live-Modus: Klang der Spuren FREI 1 und FREI 2 aus dem Tonlager</td></tr>
+<tr><td><kbd>MASTER</kbd></td><td>Lautstärke</td></tr>
+</table>
+<div class="box"><b>Die Lichter helfen.</b> Was blinkt, soll gedrückt werden. Glimmende Tasten kann man benutzen, helle
+sind gerade aktiv. Beim Klopfer blinken alle Tasten mit jedem Stromstoß, so sieht man die Frequenz. Bei einem Auftrag
+blinkt die Taste, auf der die Kundschaft ihren Ton gespielt hat. PLAY leuchtet grün für richtig. In der
+Schrittmaschine zeigen die 16 weißen Tasten die Schritte und den Lauf, die schwarzen die Spuren.</div>
+
+<h2>Spielarten</h2>
+<p><b>Geschichte:</b> 11 Kapitel, eins nach dem anderen. Jedes Kapitel kann wiederholt werden, die besten Sterne bleiben.</p>
+<p><b>Aufträge</b> (ab Kapitel 2): endlos neue Anrufe aus allen geschafften Kapiteln, jedes Mal ein wenig anders. Drei Stufen:
+<b>leicht</b> mit Oszilloskop und Tipps von Herrn Vogl, <b>mittel</b> nur mit Oszilloskop, <b>schwer</b> nur mit den
+Ohren. Die Punkte zählen mit.</p>
+<p><b>Minispiele</b> (ab Kapitel 1): Hoch oder tief?, Welche Welle?, Spiel mir nach!</p>
+<p><b>Live</b> (ab Kapitel 9): ein Sequencer mit 16 Schritten und sechs Spuren. Trommel, Klatsch, Zisch und Bass sind
+fest, die zwei freien Spuren bekommen ihren Klang aus dem Tonlager. Dort liegen Grundklänge und jeder Klang, den das
+Kind in einem Auftrag gebaut hat. Jede Spur hat ihre eigene Fabrik zum Umbauen.</p>
+<div class="row">
+  <figure><img class="px" src="img/takt.png" alt="Schrittmaschine mit sechs Spuren"><figcaption>Die Schrittmaschine</figcaption></figure>
+  <figure><img class="px" src="img/live-fabrik.png" alt="Fabrik einer Spur im Live-Modus"><figcaption>Live: die Fabrik einer Spur</figcaption></figure>
+  <figure><img class="px" src="img/urkunde.png" alt="Urkunde"><figcaption>Nach der Meisterprüfung</figcaption></figure>
+</div>
+
+<h2>Tipps zum Begleiten</h2>
+<ul>
+<li>Die Texte sind kurz und in Großbuchstaben. Für Kinder, die noch langsam lesen: vorlesen und gemeinsam drehen.</li>
+<li>Lieber hören als gucken: Im Auftrag zuerst PLAY drücken, dann selbst eine Taste spielen und vergleichen. Das Oszi hilft, aber die Ohren entscheiden.</li>
+<li>Nicht jeder Auftrag muss drei Sterne haben. Ein Stern reicht zum Weiterkommen.</li>
+<li>Gute Gespräche: Warum klingt eine Säge heller als ein Sinus? Wo hört man im Alltag Echo? Wie schnell schlägt dein Herz, wie schnell ist ein Marsch?</li>
+</ul>
+
+<h2>Installation</h2>
+<div class="box warn"><b>Vorher lesen:</b> Eigene Firmware kann einen FM-1 unbrauchbar machen. Der Chip hat nur eine
+Firmware-Bank und keinen Recovery-Taster; neuere Hardware-Revisionen (M-VAVE-Logo unter dem Display) vertragen manche
+Custom-Firmwares nicht. Vorher auf die offizielle Firmware V15 gehen, Daten sichern und wissen, wie man zurückkommt.
+Die Tonfabrik baut auf fm1-base auf, wie ro:MINImal. Auf einem echten FM-1 wurde sie noch nicht getestet.</div>
+<p>Das Paket <code>tonfabrik.fwsc</code> entsteht bei jedem Push im Workflow <code>build</code> (Artefakt <code>firmware</code>).
+Installiert wird es mit dem Installer von fm1-base: <code>python3 base/tools/fm1_install.py tonfabrik.fwsc</code>.</p>
+<p>Die Spielstände liegen im Flash bei <code>0xB1000</code>, <code>0xB3000</code> und <code>0xB5000</code>, im selben Fenster wie
+bei ro:MINImal, fern von Bootloader, Bluetooth-Kopplung, Update-Bereich, Werksdaten und Schlüsseln. Der Build prüft das
+und bricht sonst ab.</p>
+
+<p style="margin-top:40px;color:var(--soft);font-size:14px">GPL-3.0-only. Gebaut auf fm1-base und felucca-bsp (MPL-2.0). Nicht mit M-VAVE oder JieLi verbunden.</p>
+</div>
+</body>
+</html>

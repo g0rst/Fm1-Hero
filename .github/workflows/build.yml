@@ -1,0 +1,135 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Baut die Tonfabrik bei jedem Push: zuerst die Host-Tests und die Browser-Version, dann das Firmware-Paket für den
+# FM-1 mit JieLis Toolchain und dem AC79-SDK (geholt von den Skripten von fm1-base, auf dem Stand, auf den base/ zeigt).
+# Das Paket liegt als Artefakt "firmware" am Lauf. Ein Push auf main veröffentlicht die Seite (GitHub Pages):
+# die Browser-Version, das Paket und das Handbuch. Pages muss einmal auf "GitHub Actions" stehen
+# (Settings > Pages > Source: GitHub Actions).
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Werkzeuge
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq clang lld libfribidi0
+          python3 -m pip install -q Pillow
+      - name: Host-Simulator (fm1-base) und alle Tests
+        run: |
+          ./build.sh --host
+          sh tests/run_tests.sh
+      - name: Browser-Version
+        run: sh sim/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: test-output
+          path: |
+            build/tests/live.wav
+            build/tests/*.ppm
+            build/story/*.ppm
+            app/build/host/*.png
+          if-no-files-found: warn
+
+  firmware:
+    needs: test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Werkzeuge
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libfribidi0 xz-utils
+          python3 -m pip install -q Pillow
+      - name: JieLi-Toolchain und AC79-SDK (aus dem Cache)
+        id: jieli
+        uses: actions/cache@v4
+        with:
+          path: ~/.jieli
+          key: jieli-${{ hashFiles('base/tools/get_toolchain.sh', 'base/bsp/tools/get_sdk.sh') }}
+      - name: Toolchain und SDK holen
+        if: steps.jieli.outputs.cache-hit != 'true'
+        run: |
+          sh base/tools/get_toolchain.sh "$HOME/.jieli"
+          # JieLis SDK-Repository auf GitHub gibt es nicht mehr; Gitee ist, wo JieLi es pflegt. Derselbe Stand, das
+          # Skript prüft die Hashes der Dateien. Die Übertragung von Gitee bricht manchmal ab: dann nochmal.
+          git config --global http.version HTTP/1.1
+          for try in 1 2 3 4 5 6; do
+            if SDK_URL=https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git \
+                sh base/bsp/tools/get_sdk.sh "$HOME/.jieli/ac79-sdk"; then break; fi
+            if [ "$try" = 6 ]; then echo "das SDK ließ sich nicht holen" >&2; exit 1; fi
+            sleep 20
+          done
+      - name: Firmware-Paket bauen
+        run: |
+          export JIELI_TOOLCHAIN="$HOME/.jieli/toolchain" AC79_SDK="$HOME/.jieli/ac79-sdk"
+          ./build.sh
+          ls -l app/build/
+          sha256sum app/build/tonfabrik.fwsc
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: |
+            app/build/tonfabrik.fwsc
+            app/build/tonfabrik.bin
+            app/build/firmware.json
+          if-no-files-found: error
+
+  pages:
+    needs: firmware
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/download-artifact@v4
+        with:
+          name: firmware
+          path: dist
+      - name: Seite bauen
+        run: |
+          set -eu
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq clang lld
+          sh sim/build.sh
+          mkdir -p _site
+          cp docs/index.html _site/index.html
+          cp docs/handbuch.html _site/handbuch.html
+          cp docs/screen.png _site/
+          cp -r docs/img _site/img
+          cp dist/tonfabrik.fwsc dist/firmware.json _site/
+          (cd _site && sha256sum tonfabrik.fwsc > SHA256SUMS)
+          ls -l _site
+      - uses: actions/upload-pages-artifact@v3
+      - id: deploy
+        uses: actions/deploy-pages@v4

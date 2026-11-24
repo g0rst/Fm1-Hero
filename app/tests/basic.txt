@@ -1,0 +1,12 @@
+# Die Tonfabrik im Host-Simulator von fm1-base: ./build.sh --host, dann tests/run_tests.sh
+wait 600
+shot titel.png
+expect screen 0
+tap SEL
+wait 100
+expect screen 1
+tap SEL
+wait 1500
+expect chapter 1
+expect dialog 1
+shot vogl.png

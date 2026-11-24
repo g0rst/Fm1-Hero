@@ -429,17 +429,17 @@ static void voice_reset(voice_t *v, const uint8_t *p)
 static void syn_init(void)
 {
     int i;
-    for (i = 0; i <= SIN_N; i++) {              /* Sinus aus einer Drehung: Genauigkeit reicht */
-        double x = (double)i / SIN_N * 6.283185307179586, s = 0, t = x;
+    for (i = 0; i <= SIN_N; i++) {              /* Sinus als Reihe, nur float (die Toolchain hat kein double) */
+        float x = (float)i * (6.2831853f / (float)SIN_N), s, t;
         int k;
-        while (x > 3.141592653589793) x -= 6.283185307179586;
+        if (x > 3.1415927f) x -= 6.2831853f;
         t = x;
-        s = 0;
-        for (k = 1; k < 30; k += 2) {
+        s = 0.0f;
+        for (k = 1; k < 24; k += 2) {
             s += t;
-            t *= -x * x / ((k + 1) * (k + 2));
+            t *= -x * x / (float)((k + 1) * (k + 2));
         }
-        SIN_T[i] = (float)s;
+        SIN_T[i] = s;
     }
     for (i = 0; i < NV; i++) {
         V[i].ns = 0x9E3779B9u * (uint32_t)(i + 1);

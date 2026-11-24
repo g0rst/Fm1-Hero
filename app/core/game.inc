@@ -1004,6 +1004,7 @@ static void draw_top(const char *t, int c)
 static void draw_status(int y)
 {
     const char *ins = story_instr();
+    rect(0, y, GW, 9, C_BLK);           /* eine eigene Zeile unter dem Oszi: sie verdeckt nichts */
     if (ins) {
         int n = text_len(ins);
         rect(1, y, GW - 2, 9, C_NAVY);
@@ -1016,6 +1017,13 @@ static void draw_status(int y)
         rect(1, y, GW - 2, 9, C_NAVY);
         text(3, y + 1, T_PLAY "KUNDE", C_PNK, 1);
         text(62, y + 1, T_REC "LIEFERN", C_ORG, 1);
+    } else {
+        text(2, y + 1, "SEL: WELLE/ZEIT", C_DGRY, 1);
+        if (G.kb_oct) {
+            char o[8] = "OCT";
+            o[3] = G.kb_oct > 0 ? '+' : '-'; o[4] = (char)('0' + (G.kb_oct > 0 ? G.kb_oct : -G.kb_oct)); o[5] = 0;
+            text(GW - 32, y + 1, o, C_ORG, 1);
+        }
     }
 }
 /* wie nah der Klang schon ist (Geschichte und "leicht"): 0..3 Sterne, laufend */
@@ -1041,13 +1049,8 @@ static void draw_work(void)
         for (k = 0; k < 3; k++) text(GW - 20 + k * 6, 1, T_STAR, k < m ? C_YEL : C_DGRY, 1);
     }
     draw_band(p, 10);
-    draw_scope(23, 61, show_own, ghost);
-    draw_status(74);
-    if (G.kb_oct) {
-        char o[8] = "OCT";
-        o[3] = G.kb_oct > 0 ? '+' : '-'; o[4] = (char)('0' + (G.kb_oct > 0 ? G.kb_oct : -G.kb_oct)); o[5] = 0;
-        text(GW - 32, 64, o, C_ORG, 1);
-    }
+    draw_scope(23, 52, show_own, ghost);
+    draw_status(75);
     draw_knobs(p, 84);
     if (G.dlg_on) draw_dialog(60);
     if (G.confirm_home) { round_box(10, 40, 100, 20, C_RED, C_WHT); text_c(60, 47, "HOME = ZURÜCK", C_WHT, 1); }

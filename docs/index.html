@@ -413,7 +413,25 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
 
   /* ---- the screen and the lights, once a frame ---- */
   var lcd = $("lcd").getContext("2d"), img = lcd.createImageData(240, 240), seen = "";
+  /* ein Fehler in einem Bild hält die Seite nicht an: er wird gezeigt, das nächste Bild kommt trotzdem */
+  var errSeen = {};
+  function report(e, where) {
+    var m = (where ? where + ": " : "") + (e && e.message ? e.message : String(e)) + (e && e.lineno ? " (Zeile " + e.lineno + ")" : "");
+    if (errSeen[m]) return;
+    errSeen[m] = 1;
+    var box = $("err");
+    box.textContent = (box.textContent ? box.textContent + "\n" : "Fehler im Browser (bitte so an die Entwicklung schicken): " +
+      navigator.userAgent + "\n") + m;
+    box.style.display = "block";
+    box.style.whiteSpace = "pre-wrap";
+  }
+  window.addEventListener("error", function (e) { report(e.error || e, "Skript"); });
+  window.addEventListener("unhandledrejection", function (e) { report(e.reason, "Ablauf"); });
   function frame(t) {
+    try { frameBody(t); } catch (e) { report(e, "Bild"); }
+    requestAnimationFrame(frame);
+  }
+  function frameBody(t) {
     var dirty = w.sim_frame((held.b | latch.b | stickyB) >>> 0, (held.k | latch.k | sticky) >>> 0,
                             enc[0], enc[1], enc[2], enc[3], enc[4], enc[5], enc[6], (t >>> 0));
     latch.b = latch.k = 0; enc = [0, 0, 0, 0, 0, 0, 0];
@@ -441,7 +459,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
       }
     }
     var j;
-    devPoll();
+    try { devPoll(); } catch (e) { report(e, "Entwicklerbereich"); }
     var mask = w.sim_save();          /* each changed object under its own key, as the device keeps them */
     for (j = 0; j < 3; j++) {
       if (!(mask >>> j & 1)) continue;
@@ -452,7 +470,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
         w.sim_store_saved(j);
       } catch (e) {}
     }
-    requestAnimationFrame(frame);
   }
 
   /* ---- Entwicklermodus: Überspringen und Meldungen, direkt als GitHub-Issue ---- */
@@ -618,7 +635,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
         w.sim_store_set(k, raw2.length);
       }
     } catch (e) {}
-    devInit();
+    try { devInit(); } catch (e) { report(e, "Entwicklerbereich"); }
     requestAnimationFrame(frame);
   }).catch(function (e) {
     fail("WebAssembly ließ sich hier nicht starten (" + e.message + "). Öffne docs/index.html aus dem Repository direkt im Browser.");

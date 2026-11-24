@@ -155,6 +155,11 @@ static struct {
     int confirm_home;
 } G;
 static patch_t bench, story_bench;
+/* Entwicklermodus (nur die Browser-Version schaltet ihn ein, fab_dev): der dritte Platz hat alles offen, ARP
+ * überspringt den aktuellen Schritt. Die Plätze 1 und 2 spielen wie immer. */
+#define DEV_SLOT 2
+static uint8_t dev_mode;
+#define DEV (dev_mode && G.slot == DEV_SLOT)
 static uint8_t white_key[16], black_key[11];   /* Tastennummer der 16 weißen und 11 schwarzen Tasten */
 
 static int is_black(int k) { int pc = (53 + k) % 12; return pc == 1 || pc == 3 || pc == 6 || pc == 8 || pc == 10; }
@@ -1161,7 +1166,10 @@ static void draw_slots(void)
         char b[24];
         round_box(4, y, 112, 28, sel ? C_PLUM : C_BLK, sel ? C_YEL : C_DGRY);
         client_icon(SLOT_ICON[i], 8, y + 2, 1);
-        if (!SL[i].used) {
+        if (dev_mode && i == DEV_SLOT) {
+            text(38, y + 5, "ENTWICKLER", C_ORG, 1);
+            text(38, y + 15, "ALLES OFFEN", C_LGRY, 1);
+        } else if (!SL[i].used) {
             text(38, y + 10, "NEU", sel ? C_WHT : C_LGRY, 1);
         } else {
             put_int(put_str(b, "KAPITEL "), SL[i].ch_done < NCH ? SL[i].ch_done + 1 : NCH);
@@ -1620,6 +1628,50 @@ static void input_live(void)
         steps_input();
 }
 
+/* Entwicklermodus: ARP überspringt, was gerade dran ist (Sprechblase, Aufgabe, Auftrag mit 3 Sternen, Minispiel) */
+static void dev_skip(void)
+{
+    const job_t *j;
+    if (!DEV || !(G.bpress >> FAB_B_ARP & 1u)) return;
+    G.bpress &= ~(1u << FAB_B_ARP);
+    sfx(SFX_BLIP, 96);
+    switch (G.screen) {
+    case SC_WORK:
+        if (G.dlg_on) {
+            G.dlg_on = 0;
+            if (G.in_story && !G.job_on) { G.pc++; story_next(); }
+        } else if (G.job_on) {
+            j = &JOBS[G.job];
+            if (j->kind == JK_SOUND) { int i; for (i = 0; i < NP; i++) bench[i] = tgt_patch[i]; }
+            else {
+                const uint8_t *s;
+                for (s = j->set; s[0] != END_; s += s[0] >= BPM_MIN ? 2 : 3) {
+                    if (s[0] == BPM_MIN || s[0] == BPM_MAX) CUR.song.bpm = s[1];
+                    else CUR.song.on[s[0]] = (uint16_t)(s[1] | s[2] << 8);
+                }
+            }
+            deliver();
+        } else if (G.in_story) { G.pc++; story_next(); }
+        break;
+    case SC_CALL:
+        if (G.call_phase == 0) { syn_off(V_SFX); G.call_phase = 1; say(JOBS[G.job].call, 1 + JOBS[G.job].client, 0); }
+        G.dlg_on = 0;                   /* der nächste Schritt öffnet die Werkstatt */
+        G.bpress |= 1u << FAB_B_SEL;
+        break;
+    case SC_GAME:
+        G.dlg_on = 0;
+        G.g_bad = 0;
+        G.g_len = 8;
+        game_finish();
+        break;
+    case SC_RESULT:
+        G.dlg_on = 0;
+        G.bpress |= 1u << FAB_B_SEL;
+        break;
+    default:
+        break;
+    }
+}
 static void input_screen(void)
 {
     int dsel = G.enc[FAB_E_SELECT] + G.enc[FAB_E_K1];
@@ -1651,9 +1703,12 @@ static void input_screen(void)
                 song_default(&s->song);
                 G.slot = keep;
                 save_mask |= (uint8_t)(1u << G.slot);
-                story_begin(1);
-            } else
+                if (DEV) { s->ch_done = NCH; go(SC_MENU); }
+                else story_begin(1);
+            } else {
+                if (DEV) CUR.ch_done = NCH;
                 go(SC_MENU);
+            }
             sfx(SFX_STAR, 88);
         }
         break;

@@ -277,6 +277,34 @@ int main(int argc, char **argv)
         printf("  Spitze %.3f\n", peak);
         if (peak < 0.05 || peak > 1.0) { printf("FAIL: Live-Pegel\n"); fails++; }
     }
+    /* Entwicklermodus (Browser): Platz 3 hat alles offen, ARP springt durch ein Kapitel */
+    printf("Entwicklermodus\n");
+    {
+        int n = 0;
+        fab_init(11);
+        fab_dev(1);
+        tap(FAB_B_SEL);
+        turn(FAB_E_SELECT, 1); turn(FAB_E_SELECT, 1);
+        tap(FAB_B_SEL);
+        EXPECT(FAB_Q_SCREEN, SC_MENU);
+        EXPECT(FAB_Q_SLOT, 2);
+        tap(FAB_B_SEL);
+        EXPECT(FAB_Q_SCREEN, SC_MAP);
+        turn(FAB_E_SELECT, 5);                /* von Kapitel 11 weiter: Kapitel 5 */
+        tap(FAB_B_SEL);
+        EXPECT(FAB_Q_CHAPTER, 5);
+        while (fab_state(FAB_Q_SCREEN) != SC_MAP && n++ < 200) { tap(FAB_B_ARP); wait_ms(50); }
+        EXPECT(FAB_Q_SCREEN, SC_MAP);
+        printf("  Kapitel 5 mit ARP übersprungen: %d Sprünge\n", n);
+        /* Platz 1 bleibt normal: neu -> Kapitel 1, ARP tut nichts */
+        tap(FAB_B_HOME); tap(FAB_B_HOME);
+        turn(FAB_E_SELECT, 1);
+        tap(FAB_B_SEL);
+        EXPECT(FAB_Q_CHAPTER, 1);
+        n = fab_state(FAB_Q_STEP);
+        tap(FAB_B_ARP);
+        EXPECT(FAB_Q_STEP, n);
+    }
     printf(fails ? "%d FEHLER\n" : "alle Tests bestanden\n", fails);
     return fails != 0;
 }

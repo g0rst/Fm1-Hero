@@ -175,7 +175,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
       <li>Bei einem Auftrag: <b>PLAY</b> spielt den Ton, den die Kundschaft will. <b>REC</b> liefert deinen Ton aus. <b>GLO</b> fragt Herrn Vogl nach einem Tipp. <b>SEL</b> wechselt das Bild zwischen WELLE und ZEIT.</li>
       <li>Schrittmaschine und LIVE: die 16 weißen Tasten sind die Schritte, die schwarzen wählen die Spur. Schritt halten und KNOB1 drehen: sein Ton. KNOB2 Tempo, KNOB3 Lautstärke, KNOB4 Swing, PLAY startet.</li>
       <li>LIVE: <b>SEQ</b> oder <b>EDIT</b> öffnet die Fabrik der Spur, dort spielen die Tasten und REC nimmt auf. PRESETS wählt bei FREI 1 und 2 einen Klang aus dem Tonlager. SEL schaltet die Spur stumm, SAVE speichert.</li>
-      <li>Computer-Tastatur: Enter = SEL, Esc = HOME, Leertaste = PLAY, R = REC, G = GLO.</li>
+      <li>Computer-Tastatur: Enter = SEL, Esc = HOME, Leertaste = PLAY, R = REC, G = GLO, A = ARP.</li>
+      <li><b>Entwicklermodus:</b> Der dritte Platz (Frosch, „ENTWICKLER“) hat hier im Browser alle Kapitel, Aufträge, Minispiele und LIVE offen. Auf der Karte frei springen; <b>ARP</b> überspringt, was gerade dran ist (Sprechblase, Aufgabe, Auftrag mit 3 Sternen, Minispiel). Katze und Hund spielen normal. Im Gerät gibt es diesen Modus nicht.</li>
     </ul>
   </section>
   <p class="note">Spielstände bleiben in diesem Browser gespeichert (drei Plätze, wie im Gerät). Die Firmware baut auf fm1-base auf, wie ro:MINImal.</p>
@@ -309,7 +310,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
     });
     $("keys").appendChild(box);
   });
-  var KEYMAP = { Enter: 1, Escape: 6, Space: 10, KeyR: 11, KeyG: 5 };
+  var KEYMAP = { Enter: 1, Escape: 6, Space: 10, KeyR: 11, KeyG: 5, KeyA: 8 };
   document.addEventListener("keydown", function (e) {
     var b = KEYMAP[e.code];
     if (b === undefined || e.repeat || e.target.tagName === "INPUT") return;

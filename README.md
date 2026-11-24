@@ -15,6 +15,11 @@ wollen, baust es nach und lieferst aus.
 `main` auch unter https://g0rst.github.io/Fm1-Hero/ ; Pages muss dafür einmal auf „GitHub Actions“ stehen
 (Settings › Pages › Source).
 
+**Entwicklermodus (nur im Browser):** Der dritte Platz (Frosch) heißt dort „ENTWICKLER“: alle Kapitel, Aufträge,
+Minispiele und LIVE sind offen, auf der Karte kann man frei springen, und **ARP** (Tastatur: A) überspringt, was gerade
+dran ist: Sprechblase, Aufgabe, Auftrag (mit 3 Sternen) oder Minispiel. Katze und Hund spielen normal; in der Firmware
+gibt es den Modus nicht.
+
 **Handbuch für Eltern und Lehrkräfte:** [`docs/handbuch.html`](docs/handbuch.html)
 
 ## Was das Spiel kann

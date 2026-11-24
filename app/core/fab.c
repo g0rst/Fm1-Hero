@@ -34,6 +34,8 @@ void fab_init(uint32_t seed)
     dirty_bits = (1u << FAB_STRIPS) - 1u;
 }
 
+void fab_dev(int on) { dev_mode = (uint8_t)(on != 0); }
+
 void fab_panic(void) { syn_alloff(); seq_play = 0; }
 
 void fab_render(int32_t *lr, uint32_t n, uint32_t gain_q12) { fab_render_core(lr, n, gain_q12); }
@@ -60,6 +62,7 @@ void fab_input(uint32_t buttons, uint32_t keys, const int32_t enc[FAB_NE], uint3
     for (i = 0; i < FAB_NB; i++)
         if (G.bpress >> i & 1u) G.bdown_at[i] = now_ms;
     for (i = 0; i < FAB_NE; i++) G.enc[i] = enc[i];
+    dev_skip();
     if (G.screen == SC_WORK) input_work();
     else if (G.screen == SC_LIVE) input_live();
     else input_screen();

@@ -25,7 +25,11 @@ static float out[2 * 128];
 static uint32_t lights[7];
 static uint8_t obj[FAB_OBJ_MAX];
 
-void EXPORT(sim_init)(uint32_t seed) { fab_init(seed); }
+void EXPORT(sim_init)(uint32_t seed)
+{
+    fab_init(seed);
+    fab_dev(1);                         /* im Browser: Platz 3 ist der Entwicklermodus */
+}
 uint16_t *EXPORT(sim_fb)(void) { return fb; }
 float *EXPORT(sim_out)(void) { return out; }
 uint32_t *EXPORT(sim_lights)(void) { return lights; }

@@ -458,7 +458,11 @@ static const char *hint_for(int p)
         if (m >= 0) {                   /* wo: Maschine und Regler; die Maschine blinkt in der Leiste */
             e = put_str(put_str(e, " SELECT: "), MACH_SHORT[m]);
             e = put_int(put_str(e, ", K"), knob);
-            put_str(e, ".");
+            e = put_str(e, ".");
+            if ((p == P_A1 || p == P_D1 || p == P_R1 || p == P_A2 || p == P_D2 || p == P_R2) && tgt_patch[p] < 50)
+                put_str(e, " TIPP: IM ZEITBILD MIT PRESETS HINEINZOOMEN.");
+            else if (p == P_LRATE && tgt_patch[p] < 40)
+                put_str(e, " TIPP: PRESETS ZURÜCK ZEIGT MEHR ZEIT.");
             G.new_mach = m;
             G.new_t0 = G.now;
         }
@@ -621,6 +625,7 @@ static int story_wait_done(const op_t *o)
     case O_WAITBTN: return G.bpress >> o->a & 1u;
     case O_WAITM: return G.mach == o->a;
     case O_SEQGOAL: return CUR.song.on[o->a] == (uint16_t)(o->b | o->c << 8);
+    case O_WAITZOOM: return G.view == o->a && (o->a ? G.zoom_t : G.zoom_w) <= o->b;
     default: return 1;
     }
 }
@@ -660,7 +665,8 @@ static const char *story_instr(void)
         put_str(put_str(put_str(sel, "SELECT: "), MACH_SHORT[need]), "!");
         return sel;
     }
-    if (o->op == O_WAIT || o->op == O_WAITKEY || o->op == O_WAITBTN || o->op == O_WAITM || o->op == O_SEQGOAL)
+    if (o->op == O_WAIT || o->op == O_WAITKEY || o->op == O_WAITBTN || o->op == O_WAITM || o->op == O_SEQGOAL ||
+        o->op == O_WAITZOOM)
         return o->t;
     return 0;
 }

@@ -159,7 +159,7 @@ int fab_context(char *out, int max)
             static const char *const OPN[] = {"SAGT", "WUSSTEST DU", "FREUT SICH", "NEUE MASCHINE", "WÄHLT", "SETZT",
                                               "NEU", "WARTET AUF REGLER", "WARTET AUF TASTE", "WARTET AUF KNOPF",
                                               "WARTET AUF MASCHINE", "AUFTRAG", "BILD", "SCHRITTE", "WARTET AUF SCHRITTE",
-                                              "LEERT", "ENDE"};
+                                              "LEERT", "ENDE", "WARTET AUF ZOOM"};
             e = put_int(put_str(e, ", Schritt "), G.pc + 1);
             e = put_str(put_str(put_str(e, " ("), OPN[o->op]), ")");
             if (o->t) e = put_str(put_str(put_str(e, ": \""), o->t), "\"");

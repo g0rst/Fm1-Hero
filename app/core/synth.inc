@@ -364,7 +364,7 @@ static float comb_lp[4], dly_lp, dly_time_s = 0.3f, dly_time_t = 0.3f, master_dc
 
 /* das Oszi: was die gewählte Stimme gerade macht */
 #define SCOPE_N 4096                    /* 93 ms: zwei Schwingungen auch beim tiefsten Ton (22 Hz) */
-static float scope_buf[SCOPE_N];
+static float scope_buf[SCOPE_N] POOL;   /* (16 KB: im Pool, nicht im knappen RAM) */
 static volatile uint32_t scope_w;
 static volatile uint8_t scope_v = V_BENCH;
 /* das Zeitbild: 120 Abschnitte zu 10 ms, ab dem Anschlag (der Klopfer: fortlaufend) */
@@ -622,9 +622,10 @@ static void fab_render_core(int32_t *lr, uint32_t n, uint32_t gain_q12)
 static void syn_offline(const uint8_t *p, int note, int8_t *wave_out, int8_t *zeit_out, uint32_t bin, int periods)
 {
     static voice_t tv;
-    uint32_t i, hold = (ZEIT_N / 2u) * bin, total = ZEIT_N * bin;   /* die halbe Zeit gehalten, dann losgelassen */
+    uint32_t i, hold = (ZEIT_N / 2u) * bin, total = ZEIT_N * bin;   /* gehalten: das halbe Bild, mindestens 0,6 s */
+    if (hold < (uint32_t)(0.6f * FAB_SR)) hold = (uint32_t)(0.6f * FAB_SR);
     float pk = 0.0f;
-    static float buf[4096];
+    static float buf[4096] POOL;
     uint32_t bw = 0;
     tv.ns = 0x51ED27u;
     voice_reset(&tv, p);

@@ -9,7 +9,7 @@ static uint8_t fb[GW * GH];
  * 0xFF heißt durchsichtig. Kurven sind so doppelt so fein wie der Pixel-Look drumherum. */
 #define HS_Y0 46
 #define HS_H 104
-static uint8_t hfb[2 * GW * HS_H];
+static uint8_t hfb[2 * GW * HS_H] POOL;  /* 25 KB im Pool */
 static uint8_t hs_on;
 static void hclear(void)
 {

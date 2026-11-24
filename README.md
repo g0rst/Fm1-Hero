@@ -64,7 +64,8 @@ Senden mit.
   füllt sich mit der Lautstärke.
   Das Oszi zeichnet seine Kurven in voller Displayauflösung (240 Punkte), feiner als der Pixel-Look drumherum.
   **PRESETS** (oder ALGORITHM) zoomt in der Werkstatt: das Zeitbild von 0,15 bis 4,8 Sekunden (zum Feineinstellen
-  von START und FALL), die Welle von 1 bis 8 Schwingungen.
+  von START und FALL), die Welle von 1 bis 8 Schwingungen. Herr Vogl führt den Zoom in Kapitel 2 (Welle) und 4 (Zeit)
+  als Aufgabe ein und erinnert in Kapitel 6 und 7 daran; Tipps zu kurzen Hüllkurven nennen ihn auch.
 
 | Kapitel | Maschine | Lernziel |
 | --- | --- | --- |
@@ -127,8 +128,8 @@ nicht. Vorher auf die offizielle V15 gehen, Daten sichern und wissen, wie man zu
 | Spielstände im Flash | 3 × 352 B bei `0xB1000`, `0xB3000`, `0xB5000` (je ein Sektorpaar) | Fenster `0xB1000–0xBAFFF` |
 | Panel-Kalibrierung (Plattform) | `0xDC000` | Datenbereich von fm1-base |
 | Firmware-Image (Flash) | 144 284 B | 581 564 B (App-Slot) |
-| RAM .data + .bss (darin das Bild, 14 KB) | 40 188 B | 98 304 B |
-| RAM-Pool (Echo 64 KB, Hall 13 KB, fm1-base) | 147 732 B | 344 064 B |
+| RAM .data + .bss (darin das Bild, 14 KB) | siehe Build-Log (ca. 40 KB) | 98 304 B |
+| RAM-Pool (Echo 64 KB, Hall 13 KB, Oszi 57 KB, fm1-base) | siehe Build-Log (ca. 205 KB) | 344 064 B |
 | RAM-Code (.ram_text) | 5 100 B | 32 768 B |
 | Klang, schlimmster Fall (9 Stimmen mit FM, Filter, Wackler, Kratz, Echo, Hall) | ca. 2 160 Instruktionen pro Sample (callgrind, x86-64) | Budget 8 163 Takte pro Sample |
 

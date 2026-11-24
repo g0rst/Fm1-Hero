@@ -63,7 +63,8 @@ static void check_content(void)
         if (text_len(CH_NAME[c]) > 19) FAIL("Kapitelname zu lang: %s", CH_NAME[c]);
         for (o = CHAPTERS[c]; o->op != O_END; o++) {
             if (o->t) check_text("Text", o->t, LW);
-            if ((o->op == O_WAIT || o->op == O_WAITKEY || o->op == O_WAITBTN || o->op == O_WAITM || o->op == O_SEQGOAL)
+            if ((o->op == O_WAIT || o->op == O_WAITKEY || o->op == O_WAITBTN || o->op == O_WAITM || o->op == O_SEQGOAL ||
+                 o->op == O_WAITZOOM)
                 && text_len(o->t) > 20) FAIL("Kapitel %d: Anweisung zu lang: %s", c + 1, o->t);
             if (o->op == O_WAIT) {
                 if (PARAM_CH[o->a] > c + 1) FAIL("Kapitel %d wartet auf Regler %d aus Kapitel %d", c + 1, o->a, PARAM_CH[o->a]);
@@ -159,6 +160,7 @@ static int robot(void)
             case O_WAITBTN: tapb(o->a); return 1;
             case O_WAITM: if (o->a == M_ENV2) tapb(FAB_B_ENV); else { E[FAB_E_SELECT] = 1; step(); step(); } return 1;
             case O_SEQGOAL: CUR.song.on[o->a] = (uint16_t)(o->b | o->c << 8); wt(50); return 1;
+            case O_WAITZOOM: G.view = o->a; E[FAB_E_PRESET] = 1; step(); step(); return 1;
             default: wt(50); return 1;
             }
         }

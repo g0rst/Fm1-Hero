@@ -157,7 +157,7 @@ static int robot(void)
                 return 1;
             case O_WAITKEY: tapk(12); return 1;
             case O_WAITBTN: tapb(o->a); return 1;
-            case O_WAITM: tapb(FAB_B_ENV); return 1;
+            case O_WAITM: if (o->a == M_ENV2) tapb(FAB_B_ENV); else { E[FAB_E_SELECT] = 1; step(); step(); } return 1;
             case O_SEQGOAL: CUR.song.on[o->a] = (uint16_t)(o->b | o->c << 8); wt(50); return 1;
             default: wt(50); return 1;
             }

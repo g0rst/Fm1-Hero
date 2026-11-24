@@ -426,6 +426,8 @@ static int compare(const uint8_t *t, const uint8_t *b, int *worst)
     if (st == 3) *worst = -1;
     return st;
 }
+static int param_mach(int p, int *knob);
+static const char *const MACH_SHORT[NM];
 static const char *hint_for(int p)
 {
     static char hb[96];
@@ -436,8 +438,20 @@ static const char *hint_for(int p)
     if (p == P_W2) return "SCHWINGER 2 BRAUCHT EINE ANDERE WELLE.";
     h = bench[p] > tgt_patch[p] ? HINT_HI[p] : HINT_LO[p];
     d = bench[p] > tgt_patch[p] ? bench[p] - tgt_patch[p] : tgt_patch[p] - bench[p];
-    if (categorical(p)) return h;
-    put_str(put_str(hb, d <= (p == P_HZ ? 4 : 10) ? "FAST! NUR EIN BISSCHEN: " : d >= 40 ? "NOCH GANZ WEIT WEG. " : ""), h);
+    {
+        char *e = hb;
+        int knob = 0, m = param_mach(p, &knob);
+        if (!categorical(p))
+            e = put_str(e, d <= (p == P_HZ ? 4 : 10) ? "FAST! NUR EIN BISSCHEN: " : d >= 40 ? "NOCH GANZ WEIT WEG. " : "");
+        e = put_str(e, h);
+        if (m >= 0) {                   /* wo: Maschine und Regler; die Maschine blinkt in der Leiste */
+            e = put_str(put_str(e, " SELECT: "), MACH_SHORT[m]);
+            e = put_int(put_str(e, ", K"), knob);
+            put_str(e, ".");
+            G.new_mach = m;
+            G.new_t0 = G.now;
+        }
+    }
     return hb;
 }
 
@@ -596,11 +610,42 @@ static int story_wait_done(const op_t *o)
     default: return 1;
     }
 }
+/* zu welcher Maschine ein Regler gehört (und welcher Knopf, 1..4); -1: keiner */
+static int param_mach(int p, int *knob)
+{
+    int m, i;
+    if (p == P_HZ) { if (knob) *knob = 1; return M_OSC1; }
+    for (m = 0; m < NM; m++)
+        for (i = 0; i < 4; i++)
+            if (MACH[m].k[i] == p) { if (knob) *knob = i + 1; return m; }
+    return -1;
+}
+static const char *const MACH_SHORT[NM] = {"SCHWINGER", "SCHWINGER 2", "FM-ZAUBER", "FILTER", "TOR", "HÜLLKURVE",
+                                           "HÜLLKURVE 2", "WACKLER", "ECHO+HALL"};
+/* die Maschine, auf die die Geschichte gerade wartet, wenn sie nicht gewählt ist; sonst -1 */
+static int story_need_mach(void)
+{
+    const op_t *o;
+    int m;
+    if (!G.in_story || G.dlg_on || G.job_on || G.story_seq) return -1;
+    o = &CHAPTERS[G.ch - 1][G.pc];
+    if (o->op == O_WAITM) return o->a != G.mach ? o->a : -1;
+    if (o->op != O_WAIT) return -1;
+    m = param_mach(o->a, 0);
+    return m >= 0 && m != G.mach ? m : -1;
+}
 static const char *story_instr(void)
 {
     const op_t *o;
+    static char sel[32];
+    int need;
     if (!G.in_story || G.dlg_on || G.job_on) return 0;
     o = &CHAPTERS[G.ch - 1][G.pc];
+    need = story_need_mach();
+    if (o->op == O_WAIT && need >= 0) {   /* erst die richtige Maschine wählen */
+        put_str(put_str(put_str(sel, "SELECT: "), MACH_SHORT[need]), "!");
+        return sel;
+    }
     if (o->op == O_WAIT || o->op == O_WAITKEY || o->op == O_WAITBTN || o->op == O_WAITM || o->op == O_SEQGOAL)
         return o->t;
     return 0;
@@ -786,7 +831,7 @@ static void draw_band(const uint8_t *p, int y)
     if (ends) { icon(IC_BOLT, 11, 9, x + 1, y + 2, C_YEL); x += w; }
     for (i = 0; i < n + nm; i++) {
         int m = i < n ? vis[i] : mod[i - n];
-        int sel = m == G.mach, isnew = m == G.new_mach && G.now - G.new_t0 < 3000u;
+        int sel = m == G.mach, isnew = (m == G.new_mach && G.now - G.new_t0 < 3000u) || m == story_need_mach();
         int ec = sel ? C_YEL : isnew && blink(4) ? C_WHT : i < n ? C_DGRY : C_LAV;
         if (i == n && nm) { rect(x + 1, y + 2, 1, 9, C_DGRY); x += 4; }
         round_box(x, y, w, 13, sel ? C_PLUM : C_NAVY, ec);

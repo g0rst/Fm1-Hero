@@ -129,6 +129,71 @@ int fab_store_set(int slot, const void *src, uint32_t len)
 uint32_t fab_save_wanted(void) { return save_mask; }
 void fab_store_saved(int slot) { save_mask &= (uint8_t)~(1u << slot); }
 
+static const char *const SCREEN_NAME[] = {"TITEL", "PLATZWAHL", "MENÜ", "KARTE", "WERKSTATT", "ANRUF", "ERGEBNIS",
+                                           "MINISPIEL", "AUFTRAGS-MODUS", "LIVE", "MINISPIELE", "URKUNDE"};
+int fab_context(char *out, int max)
+{
+    char b[1024], *e = b;
+    int i, n;
+    e = put_int(put_str(e, "Platz "), G.slot + 1);
+    e = put_str(put_str(e, " | Bildschirm: "), SCREEN_NAME[G.screen]);
+    if (G.in_story || G.screen == SC_MAP) {
+        int ch = G.screen == SC_MAP ? G.cur + 1 : G.ch;
+        e = put_str(put_str(put_int(put_str(e, " | Kapitel "), ch), " "), CH_NAME[ch - 1]);
+        if (G.in_story) {
+            const op_t *o = &CHAPTERS[G.ch - 1][G.pc];
+            static const char *const OPN[] = {"SAGT", "WUSSTEST DU", "FREUT SICH", "NEUE MASCHINE", "WÄHLT", "SETZT",
+                                              "NEU", "WARTET AUF REGLER", "WARTET AUF TASTE", "WARTET AUF KNOPF",
+                                              "WARTET AUF MASCHINE", "AUFTRAG", "BILD", "SCHRITTE", "WARTET AUF SCHRITTE",
+                                              "LEERT", "ENDE"};
+            e = put_int(put_str(e, ", Schritt "), G.pc + 1);
+            e = put_str(put_str(put_str(e, " ("), OPN[o->op]), ")");
+            if (o->t) e = put_str(put_str(put_str(e, ": \""), o->t), "\"");
+        }
+    }
+    if (G.dlg_on && G.dlg_page) {
+        int k = 0;
+        e = put_str(e, " | Sprechblase: \"");
+        while (G.dlg_page[k] && k < 200) *e++ = G.dlg_page[k++];
+        e = put_str(e, "\"");
+    }
+    if (G.job_on || G.screen == SC_CALL || G.screen == SC_RESULT || G.screen == SC_GAME) {
+        const job_t *j = &JOBS[G.job];
+        e = put_str(put_str(put_str(put_int(put_str(e, " | Auftrag "), G.job), ": "), j->who), "");
+        if (j->name[0]) e = put_str(put_str(put_str(e, " ("), j->name), ")");
+        if (G.free) e = put_str(put_int(put_str(e, ", Auftrags-Modus Stufe "), G.diff + 1), "");
+        if (G.job_on && j->kind == JK_SOUND) {
+            int w, st = compare(tgt_patch, bench, &w);
+            e = put_int(put_str(e, ", jetzt "), st);
+            e = put_str(e, " Sterne");
+            if (w >= 0) e = put_int(put_str(e, ", am weitesten weg: Regler "), w);
+        }
+    }
+    if (G.screen == SC_WORK || G.screen == SC_LIVE) {
+        const uint8_t *p = edit_patch();
+        e = put_str(put_str(e, " | Maschine: "), MACH[G.mach].name);
+        e = put_str(e, " | Regler:");
+        for (i = 0; i < 4; i++) {
+            int prm = knob_param(G.mach, i);
+            char v[12];
+            if (prm < 0) continue;
+            value_text(prm, p[prm], v);
+            e = put_str(put_str(put_str(put_str(e, " "), MACH[G.mach].lab[i]), "="), v);
+        }
+        e = put_str(e, " | Patch:");
+        for (i = 0; i < NP; i++) e = put_int(put_str(e, i ? "," : " "), p[i]);
+        if (G.job_on && JOBS[G.job].kind == JK_SOUND) {
+            e = put_str(e, " | Ziel:");
+            for (i = 0; i < NP; i++) e = put_int(put_str(e, i ? "," : " "), tgt_patch[i]);
+        }
+    }
+    n = (int)(e - b);
+    if (n > max - 1) n = max - 1;
+    for (i = 0; i < n; i++) out[i] = b[i];
+    out[n] = 0;
+    return n;
+}
+
 int fab_state(int what)
 {
     if (what >= FAB_Q_PARAM && what < FAB_Q_PARAM + NP) return edit_patch()[what - FAB_Q_PARAM];

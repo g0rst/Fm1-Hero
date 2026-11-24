@@ -29,7 +29,9 @@ enum { FAB_E_SELECT, FAB_E_ALGO, FAB_E_PRESET, FAB_E_K1, FAB_E_K2, FAB_E_K3, FAB
 /* ---- Lebenslauf ---- */
 void fab_init(uint32_t seed);
 void fab_panic(void);
-void fab_dev(int on);                   /* Entwicklermodus für Platz 3 (nur die Browser-Version) */
+void fab_dev(int on);
+/* wo das Spiel gerade steht, als Text (für Fehlermeldungen aus dem Entwicklermodus); gibt die Länge */
+int fab_context(char *out, int max);                   /* Entwicklermodus für Platz 3 (nur die Browser-Version) */
 
 /* ---- Audio-Kontext: n Stereo-Frames, 24 Bit (Q23 in int32), Lautstärke gain_q12 (0..4096) ---- */
 void fab_render(int32_t *lr, uint32_t n, uint32_t gain_q12);

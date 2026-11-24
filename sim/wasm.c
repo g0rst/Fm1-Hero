@@ -65,3 +65,4 @@ uint32_t EXPORT(sim_store_get)(int slot) { return fab_store_get(slot, obj, sizeo
 int EXPORT(sim_store_set)(int slot, uint32_t len) { return fab_store_set(slot, obj, len); }
 void EXPORT(sim_store_saved)(int slot) { fab_store_saved(slot); }
 int EXPORT(sim_state)(int what) { return fab_state(what); }
+int EXPORT(sim_context)(void) { return fab_context((char *)obj, sizeof obj); }   /* Text nach sim_obj (UTF-8) */

@@ -19,6 +19,12 @@ wollen, baust es nach und lieferst aus.
 Minispiele und LIVE sind offen, auf der Karte kann man frei springen, und **ARP** (Tastatur: A) überspringt, was gerade
 dran ist: Sprechblase, Aufgabe, Auftrag (mit 3 Sternen) oder Minispiel. Katze und Hund spielen normal; in der Firmware
 gibt es den Modus nicht.
+Unter dem Gerät erscheint dann **„Fehler melden oder kommentieren“**: Art wählen (Fehler, Änderungswunsch, Text,
+Schwierigkeit, Idee), aufschreiben, absenden. Die Stelle im Spiel kommt von selbst dazu (Platz, Bildschirm, Kapitel und
+Schritt mit dem Text von Herrn Vogl, Auftrag mit Sternen, Maschine, Reglerwerte, der ganze Patch und das Ziel).
+**„Als GitHub-Issue senden“** öffnet ein fertig ausgefülltes Issue in diesem Repository; „Bildschirmfoto speichern“
+legt das Display als PNG ab, zum Anhängen ans Issue. Notizen lassen sich auch nur lokal sammeln und alle auf einmal
+kopieren.
 
 **Handbuch für Eltern und Lehrkräfte:** [`docs/handbuch.html`](docs/handbuch.html)
 

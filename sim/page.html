@@ -133,6 +133,15 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
   .key.b { height: 88px; }
 }
 @media (prefers-reduced-motion: reduce) { .btn.down, .pm button:active { transform: none; } }
+.dev { margin: 18px 0; padding: 14px 16px; border: 2px dashed #ffa300; border-radius: 10px; background: rgba(255,163,0,.06); }
+.dev h2 { margin: 0 0 6px; font-size: 17px; }
+.devhint { margin: 0 0 10px; font-size: 14px; opacity: .8; }
+.devrow { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.dev textarea { width: 100%; box-sizing: border-box; font: inherit; padding: 8px; border-radius: 6px; border: 1px solid #888; }
+.dev pre { white-space: pre-wrap; word-break: break-word; font-size: 12px; max-height: 120px; overflow: auto; background: rgba(0,0,0,.25); padding: 8px; border-radius: 6px; }
+.dev button, .dev select { font: inherit; padding: 6px 12px; border-radius: 6px; border: 1px solid #888; background: #2a2a2a; color: #eee; cursor: pointer; }
+.dev button.primary { background: #ffa300; color: #111; border-color: #ffa300; font-weight: 600; }
+.dev ol { font-size: 13px; margin: 6px 0 0; padding-left: 20px; }
 </style>
 </head>
 <body>
@@ -162,6 +171,29 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
     </div>
     <div class="keys" id="keys"></div>
   </div>
+  <section class="dev" id="dev" hidden>
+    <h2>Entwicklermodus: Fehler melden oder kommentieren</h2>
+    <p class="devhint">Schreib, was nicht stimmt oder was anders sein soll. Wo du im Spiel gerade bist, kommt von selbst dazu (beim Klick auf „Stelle merken“ oder beim Senden).</p>
+    <div class="devrow">
+      <select id="devkind" aria-label="Art">
+        <option value="Fehler">Fehler</option>
+        <option value="Änderung">Änderungswunsch</option>
+        <option value="Text">Text / Sprache</option>
+        <option value="Schwierigkeit">zu leicht / zu schwer</option>
+        <option value="Idee">Idee</option>
+      </select>
+      <button type="button" id="devgrab">Stelle merken</button>
+    </div>
+    <textarea id="devtext" rows="4" placeholder="Was ist dir aufgefallen?"></textarea>
+    <pre id="devctx">(noch keine Stelle gemerkt)</pre>
+    <div class="devrow">
+      <button type="button" id="devissue" class="primary">Als GitHub-Issue senden</button>
+      <button type="button" id="devshot">Bildschirmfoto speichern</button>
+      <button type="button" id="devkeep">Nur lokal merken</button>
+      <button type="button" id="devcopy">Alle Notizen kopieren</button>
+    </div>
+    <ol id="devlist"></ol>
+  </section>
   <section class="help">
     <h2>So spielst du</h2>
     <ul>
@@ -313,7 +345,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
   var KEYMAP = { Enter: 1, Escape: 6, Space: 10, KeyR: 11, KeyG: 5, KeyA: 8 };
   document.addEventListener("keydown", function (e) {
     var b = KEYMAP[e.code];
-    if (b === undefined || e.repeat || e.target.tagName === "INPUT") return;
+    if (b === undefined || e.repeat || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
     held.b |= 1 << b; latch.b |= 1 << b; audioKick(); e.preventDefault();
   });
   document.addEventListener("keyup", function (e) {
@@ -385,6 +417,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
       }
     }
     var j;
+    devPoll();
     var mask = w.sim_save();          /* each changed object under its own key, as the device keeps them */
     for (j = 0; j < 3; j++) {
       if (!(mask >>> j & 1)) continue;
@@ -396,6 +429,63 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
       } catch (e) {}
     }
     requestAnimationFrame(frame);
+  }
+
+  /* ---- Entwicklermodus: Fehler melden, direkt als GitHub-Issue ---- */
+  var REPO = "https://github.com/g0rst/Fm1-Hero";
+  var devCtx = "", devShot = "", devTick = 0;
+  function devContext() {
+    var n = w.sim_context(), b = new Uint8Array(w.memory.buffer, w.sim_obj(), n);
+    return new TextDecoder("utf-8").decode(b.slice(0));
+  }
+  function devGrab() {
+    devCtx = devContext();
+    devShot = $("lcd").toDataURL("image/png");
+    $("devctx").textContent = devCtx;
+  }
+  function devNotes() { try { return JSON.parse(localStorage.getItem("tonfabrik-notizen") || "[]"); } catch (e) { return []; } }
+  function devShow() {
+    var l = $("devlist"), notes = devNotes();
+    l.textContent = "";
+    notes.forEach(function (n) { var li = document.createElement("li"); li.textContent = "[" + n.kind + "] " + n.text + " — " + n.ctx.slice(0, 120) + "…"; l.appendChild(li); });
+  }
+  function devNote() {
+    if (!devCtx) devGrab();
+    return { kind: $("devkind").value, text: $("devtext").value.trim(), ctx: devCtx, when: new Date().toISOString() };
+  }
+  function devBody(n) {
+    return n.text + "\n\n---\n**Stelle im Spiel** (Browser-Version, Entwicklermodus, " + n.when + "):\n\n```\n" + n.ctx + "\n```\n";
+  }
+  function devInit() {
+    $("devgrab").addEventListener("click", devGrab);
+    $("devissue").addEventListener("click", function () {
+      var n = devNote();
+      if (!n.text) { $("devtext").focus(); return; }
+      var title = "[" + n.kind + "] " + n.text.split("\n")[0].slice(0, 70);
+      window.open(REPO + "/issues/new?title=" + encodeURIComponent(title) + "&body=" + encodeURIComponent(devBody(n)), "_blank");
+    });
+    $("devshot").addEventListener("click", function () {
+      if (!devShot) devGrab();
+      var a = document.createElement("a"); a.href = devShot; a.download = "tonfabrik-" + Date.now() + ".png"; a.click();
+    });
+    $("devkeep").addEventListener("click", function () {
+      var n = devNote(), notes = devNotes();
+      if (!n.text) { $("devtext").focus(); return; }
+      notes.push(n);
+      try { localStorage.setItem("tonfabrik-notizen", JSON.stringify(notes)); } catch (e) {}
+      $("devtext").value = ""; devCtx = ""; $("devctx").textContent = "(noch keine Stelle gemerkt)";
+      devShow();
+    });
+    $("devcopy").addEventListener("click", function () {
+      var t = devNotes().map(function (n, i) { return (i + 1) + ". [" + n.kind + "] " + devBody(n); }).join("\n");
+      if (navigator.clipboard) navigator.clipboard.writeText(t);
+    });
+    devShow();
+  }
+  function devPoll() {                   /* der Bereich erscheint nur auf dem Entwicklerplatz (3) */
+    if (++devTick % 20) return;
+    var on = w.sim_state(1) === 2 && w.sim_state(0) >= 2;
+    if ($("dev").hidden === on) $("dev").hidden = !on;
   }
 
   /* ---- start ---- */
@@ -416,6 +506,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--led); outli
         w.sim_store_set(k, raw2.length);
       }
     } catch (e) {}
+    devInit();
     requestAnimationFrame(frame);
   }).catch(function (e) {
     fail("WebAssembly ließ sich hier nicht starten (" + e.message + "). Öffne docs/index.html aus dem Repository direkt im Browser.");
